@@ -1,0 +1,26 @@
+#loading-div-background 
+{
+	display:none;
+	position:fixed;
+	top:0;
+	left:0;
+	background:black;
+	width:100%;
+	height:100%;
+	z-index: 98 !important;
+}
+
+#loading-div
+{
+	width: 300px;
+	height: 200px;
+	background-color: black;/*#0c0b0b;*/
+	color: white;
+	text-align:center;
+	position:absolute;
+	left: 50%;
+	top: 50%;
+	margin-left:-150px;
+	margin-top: -100px;
+	z-index: 99 !important;
+}

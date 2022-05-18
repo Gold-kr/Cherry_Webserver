@@ -1,0 +1,145 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	<meta http-equiv='cache-control' content='no-cache'>
+	<meta charset="utf-8">
+	<title> IP CAM </title>
+	<link rel="stylesheet" type="text/css" href="css/button.css" />
+	<link rel="stylesheet" type="text/css" href="css/streaming_info.css" />
+	<script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+	<script type="text/javascript" src="./js/fileSaver.js"></script>
+	<script type="text/javascript" src="js/cookie.js"></script>
+	<script language="JavaScript" type="text/javascript">
+		var streamingInfo = new Object();
+		var _selectedIndex = 'main';
+		var streams;
+		var dewarp;
+		var sysInfo;
+		var lenzType;
+		var ledCnt;
+		var _resolution;
+		var getAll = 0;
+        var StreamPlayTimer;
+		$(document).ready(function(){
+			console.log("streaming_info.html is loaded");
+			var ip = localStorage.getItem("CamIp");
+			console.log(ip);
+			if(ip === undefined){
+				console.log("localstorage is empty");
+				ip = "115.94.37.213";
+			}
+			else if(ip === null){
+				console.log("localstorage is empty");
+				ip = "115.94.37.213";
+			}
+			else if(ip == ""){
+				console.log("localstorage is empty");
+				ip = "115.94.37.213";
+			}
+			else{
+				console.log("ip " + ip + " from localStorage");
+			}
+
+			streamingInfo.cmd = "streaming_info";
+			window.addEventListener("message", receiveParentMessage, false);
+			streamingInfo.name = "ch0";
+			streamingInfo.codec = "H264";
+			streamingInfo.ip = ip;
+			console.log(streamingInfo);
+			window.parent.postMessage(streamingInfo, "*");
+
+			$("#id_ch").text(streamingInfo.name);
+			$("#id_resol").text("4000" + " x " + "3000");
+			//$("#id_ip").text(streamingInfo.ip);
+			document.getElementById("id_ip").value = ip;
+			$("#id_codec").text(streamingInfo.codec);
+		});
+		function receiveParentMessage(e) {
+            console.log("receiveParentMessage:" + e);
+			//alert(e.data);
+		}
+
+		function ChangeIP(){
+			var ip = document.getElementById("id_ip").value;
+			if(ip == ""){
+				console.log("ip input 값이 비어있습니다.");
+			}
+			else{
+				localStorage.setItem("CamIp", ip);
+				streamingInfo.ip = ip;
+				console.log("CamIp " + ip + " is saved in localStorage and send to index.html");
+				console.log(streamingInfo);
+				window.parent.postMessage(streamingInfo, "*");
+			}
+		}
+	</script>
+	<script type="text/javascript">
+		$(function(){
+			$("#id_stream_sel").on("change", function(){
+				console.log('channel changed');
+				var idx = $("#id_stream_sel option:selected").val();
+				console.log("selected " + idx);
+				streamingInfo.cmd = "streaming_info";
+				if(idx == "main"){
+					streamingInfo.name = "ch0";
+					streamingInfo.codec = "H264";
+				}
+				else if(idx == "sub"){
+					streamingInfo.name = "ch1";
+					streamingInfo.codec = "H265";
+				}
+				console.log(streamingInfo);
+				window.parent.postMessage(streamingInfo, "*");
+
+				$("#id_ch").text(streamingInfo.name);
+				$("#id_resol").text("4000" + " x " + "3000");
+				$("#id_ip").text(streamingInfo.ip);
+				$("#id_codec").text(streamingInfo.codec);
+			});
+		});
+	</script>
+	</head>
+	<body>
+		<div style="padding:35px 35px 0px 35px;">
+			<div style="font-size: 21px; font-weight: 800; color: #3f3f3f; display: block;">
+				Information
+			</div>
+			<div style="font-size: 21px; font-weight: 800; color: #9d0b0e;">
+				<span>
+					Stream :
+				</span>
+				<span id="id_stream" class="val" style="margin-left: 70px;">
+					<select id="id_stream_sel" style="color: #9d0b0e; font-size: 18px; font-weight: 600; position: relative; top: -2px;">
+						<option value="main">main</option>
+						<option value="sub">sub</option>
+					</select> 
+				</span>
+			</div>
+			<div class="info">
+				<div class="record">
+					<span class="key"> - Model Name </span>: &nbsp;<span class="rval" id="id_model"></span>
+				</div>
+				<div class="record">
+					<span class="key"> - IP Address </span>: &nbsp;<input class="rval" id="id_ip" type="text" size="15" style="width:100px"/>
+					<button type="button" onclick="ChangeIP()">적용</button>
+					<!-- <span class="rval" id="id_ip"></span> -->
+				</div>
+				<div class="record">
+					<span class="key"> - Channel Name </span>: &nbsp;<span class="rval" id="id_ch"></span>
+				</div>
+				<div class="record">
+					<span class="key"> - Resolution </span>: &nbsp;<span class="rval" id="id_resol"></span>
+				</div>
+				<div class="record">
+					<span class="key"> - Frame Rate </span>: &nbsp;<span class="rval" id="id_frm"></span>
+				</div>
+				<div class="record">
+					<span class="key"> - Version </span>: &nbsp;<span class="rval" id="id_version"></span>
+				</div>
+				<div class="record">
+					<span class="key"> - Codec </span>: &nbsp;<span class="rval" id="id_codec"></span>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

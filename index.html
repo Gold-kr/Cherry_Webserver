@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv='cache-control' content='no-cache'>
+	<link rel="stylesheet" type="text/css" href="css/layout.css">
+	<link rel="stylesheet" type="text/css" href="options/progress/css/prog_layout.css">
+	<style type="text/css">
+		body
+		{
+			display: none;
+		}
+		#id_live:hover , #id_setup:hover, #id_logout:hover
+		{
+			cursor: pointer;
+		}
+	</style>
+	<script type="text/javascript" src="options/progress/js/progress.js"></script>	
+	<script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+	<!-- <script type="text/javascript" src="js/cookie.js"></script> -->
+	<script language="JavaScript" type="text/javascript">
+		$(document).ready(function(){
+			$("body").show();
+			//ShowProgressAnimation();
+			/* parent -> child */
+			window.addEventListener("message", processFn, false);
+			function processFn(event) {
+                console.log("processFn:" + event);
+                if(!'data' in event)
+                    return;
+                console.log("index.html get processFn " + event.data + "," + event.origin);
+                var sJson = event.data;
+                if(sJson.cmd == "streaming_info")
+                {
+                    console.log("index.html get streaming_info");
+					console.log(sJson);
+
+					//코덱(H.264, H.265)에 따라 오른쪽 화면 수정.
+					console.log("codec is " + sJson.codec + ", channel is " + sJson.name);
+					if(sJson.codec == "H264")
+					{
+						rightSideLoad();
+						document.getElementById("id_main_right_side").onload = function(){
+							document.getElementById("id_main_right_side").contentWindow.postMessage(sJson, '*');
+						};
+					}
+					else if(sJson.codec == "H265")
+					{
+						rightSideLoadNothing();
+					}
+                }
+		    }
+		});
+
+	</script>
+	<script type="text/javascript">
+	</script>
+	<script type="text/javascript">
+		function rightSideLoad()
+		{
+			console.log("rightSideLoad()");
+			document.getElementById("id_main_right_side").src = "webstreaming/index.html";
+			var iframeBody = $("#id_main_right_side").contents().find("body .option_top");
+			var styleTag = iframeBody.append('\
+        		<span style="display:inline-block; float:right; margin-right:10px; position:relative; top:65px;">\
+	        		<footer>\
+						<small style="display: inline-block; font-size: 12px;"> \
+							COPYRIGHT&copy; 2018 <b>Q&middot;DIS</b> CO., LTD. ALL RIGHTS RESERVED.\
+						</small>\
+					</footer>\
+				</span>\
+        	');
+		}
+		function rightSideLoadNothing()
+		{
+			console.log("rightSideLoadNothing()");
+			document.getElementById("id_main_right_side").src = "h265_unavailable.html";
+		}
+	</script>
+</head>
+<body>
+	<div class="container">
+		<div class="main_menu">
+			<div class="top">
+				<span class="contents">
+					<div>
+						<a href="http://ipovu.co.kr/" target="_blank">
+							<img src="/images/logo_qdis.svg">
+						</a>
+						<br/>
+						<font style="font-weight: 900;">4k</font> <font style="font-weight: 500;">IP Camera</font>
+					</div>
+					<div style="float: right;text-align: center;">
+						<div id="id_live">
+							<img src="/images/ico_live_sel.svg">
+							<br/>
+							<span style="color: #005caa; font-weight: 900;">Live</span>
+						</div>
+						<div id="id_setup" style="margin-left: 20px;">
+							<img src="/images/ico_setup.svg">
+							<br/>
+							<span style="color: #3f3f3f; font-weight: 900;">Setup</span>
+						</div>
+						<div id="id_logout" style="margin-left: 20px;">
+							<img src="/images/ico_logout.svg">
+							<br/>
+							<span style="color: #3f3f3f; font-weight: 900;">Logout</span>
+						</div>
+					</div>
+						
+				</span>
+			</div>
+			<div class="iframecontainer" style="background-color: #fafafa;">
+				<iframe id="id_main_left_side" class="iframe" name="main_left_side" frameborder="0" src="streaming_info.html">
+				</iframe>
+			</div>
+		</div>
+		<div class="main_content">
+			<div class="iframecontainer">
+				<iframe id="id_main_right_side" class="iframe" name="main_right_side" frameborder="0"></iframe>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

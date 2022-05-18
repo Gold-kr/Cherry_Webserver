@@ -1,0 +1,143 @@
+
+@import url('//fonts.googleapis.com/earlyaccess/nanumgothic.css');
+html, body 
+{ 
+	margin     	: 0px;
+	font-family	: Nanum Gothic;
+	font-weight	: 900;
+	line-height	: 1.5em;
+}
+.wrapper
+{
+	/*width       	: calc(100% - 60px);*/
+	width 			: auto;
+	/*height 			: 100%; */
+	/*height      	: calc(100% - 60px);*/
+	padding     	: 21px 42px 0px 42px;
+}
+.wrapper .openclose
+{
+	width: 18px;
+	padding: 12px 0px 10px 0px;
+}
+
+/* SUB MENU */
+.panel
+{
+	display: none;
+	height: auto;
+	overflow: hidden;
+	transition: max-height 0.2s ease-out;
+}
+.panel a
+{
+	color: #5a5a5a;
+	text-decoration: none;
+	font-size: 16px;
+	display: inline-block;
+	margin-left: 25px;
+}
+.panel a.accordion_tap
+{
+	color: #005aa7;
+	font-weight: 900;
+	display: inline-block;
+	margin-left: 20px;
+}
+
+.panel div 
+{
+	/*font-size: 16px;
+	color: #5a5a5a;
+	text-decoration: none;
+	display: block;*/
+	display: inline-block;
+	color: #5a5a5a;
+	padding: 8px 0px 8px 30px;
+	margin-right: 30%;
+}
+.panel div:hover
+{
+	/*background: #ccc;*/
+	color: #005aa7;
+	font-weight: 900;
+}
+.panel div:after
+{
+	/*content: '\203A';*/
+	background-position: 0% 0%;
+	float: left;
+	/*margin-right: 10px;*/
+	font-weight: 900;
+}
+
+.panel div.accordion_tap
+{
+	color: #005aa7;
+	font-weight: 900;
+	display: inline-block;
+}
+.panel div.accordion_tap:after
+{
+	/*content: '\203A';*/
+	content: url('/images/ico_arrow.svg');
+	float: left;
+	font-weight: 900;
+}
+
+
+/* ACCORDION BUTTON */
+/*input[type=button]*/
+/*input[type=button]*/
+button
+{
+	font-weight: 900;
+}
+button.accordion, div.accordion
+{
+	/*letter-spacing: .2em;*/
+	/*width       :100%;*/
+	/*text-transform: uppercase;*/
+	/*border-bottom: 2px solid #777;*/
+	letter-spacing  : .1em;
+	padding         : 10px 0px 5px 10px;
+	background      : #fafafa;
+	color           : #3c3c3c;
+	 
+	text-decoration : none;
+	cursor          : pointer;
+	 
+	outline         : none;
+	text-align      : left;
+	font-weight     : 900;
+	font-size       : 20px;
+	transition      : 0.4s;
+	
+	border          :none;
+}
+button.accordion
+{
+	border-bottom: 2px solid #767676;
+}
+input[type=button].accordion:hover
+{
+	font-size: 20px;
+	transition: 0.2s;
+}
+button.accordion.active
+{
+	font-size: 20px;
+	font-weight	: 900;
+}
+button.accordion:after
+{
+	/*content: '\002b';*/
+	float: left;
+	margin-right : 10px;
+	font-weight	: 900;
+}
+button.accordion.active:after
+{
+	/*content: '\2212';*/
+	font-weight	: 900;
+}

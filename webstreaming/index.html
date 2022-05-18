@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>QdisPlayer RTSP player example</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        html,
+        body {
+            height: 99%;
+            margin: 1px;
+        }
+
+        object {
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="relative" style="width:100%; height:100%;">
+        <div class="relative">
+            <video class="absolute" id="video-player" controls autoplay muted="muted">
+                해당 브라우저는 스트리밍을 지원하지 않습니다.
+            </video>
+        </div>
+    </div>
+
+    <script src="js/player.js"></script>
+
+    <script>
+        console.log("webstreaming/index.html loaded");
+        //var hostName = "location.hostname";
+        var hostName;
+        //console.log(hostName);
+        var player;
+        var html5Player;
+
+        window.addEventListener("message", processFn, false);
+
+        function processFn(event) {
+            console.log("processFn:" + event);
+            if (!'data' in event)
+                return;
+            console.log("webstreaming/index.html get processFn " + event.data + "," + event.origin);
+            var sJson = event.data;
+            console.log(sJson);
+            // if(sJson.cmd == "streaming_info")
+            // {
+            //     console.log("index.html get streaming_info");
+            //     alert(sJson);
+            //     document.getElementById("id_main_right_side").contentWindow.postMessage(sJson, '*');
+            // }
+            hostName = sJson.ip;
+            console.log("ip=" + hostName);
+            var channel = sJson.name;
+            if (sJson.codec == "H265") {
+                console.log("codec is H265. show nothing");
+                player.stop();
+            }
+            else if (sJson.codec == "H264") {
+                console.log("codec is H264");
+                console.log("window.QdisPlayer is " + window.QdisPlayer);
+
+                if (window.QdisPlayer) {
+                    let errHandler = function (err) {
+                        alert(err.message);
+                    };
+
+                    let formatHandler = function (format) {
+                        if (html5Player) {
+                            html5Player.removeAttribute('hidden');
+                        }
+                    }
+
+                    var playerOptions = {
+                        socket: 'ws://' + hostName + ':8088/',
+                        //socket: 'ws://115.94.37.213:8088/',
+                        redirectNativeMediaErrors: true,
+                        bufferDuration: 30,
+                        errorHandler: errHandler,
+                        videoFormatHandler: formatHandler,
+                        teardownNode: 'btn-stop'
+                    };
+
+                    function setPlayerSource(newSource) {
+                        player.destroy();
+                        player = null;
+                        html5Player.src = newSource;
+                        player = QdisPlayer.player("video-player", playerOptions);
+                        console.log("setPlayerSource!");
+                        console.log(player);
+                    }
+
+                    function formatDate(dateObj) {
+                        let month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        let date = String(dateObj.getDate()).padStart(2, '0');
+                        let hours = String(dateObj.getHours()).padStart(2, '0');
+                        let minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        let seconds = String(dateObj.getSeconds()).padStart(2, '0');
+
+                        return `${dateObj.getFullYear()}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+                    }
+
+                    html5Player = document.getElementById("video-player");
+                    var urlEdit = document.getElementById("stream_url");
+
+                    player = QdisPlayer.player('video-player', playerOptions);
+                    console.log("player is ");
+                    console.log(player);
+
+                    if (player.isPlaying()) {
+                        console.log('isPlaying = true');
+                    } else {
+                        console.log('isPlaying = false');
+                    }
+
+                    console.log("before setPlayerSource");
+                    setPlayerSource('rtsp://' + hostName + '/' + channel);
+                    //player.start();
+
+                    // Tab switching and window minimization processing 
+                    // for browsers that use the chrome rendering engine.
+                    if (!!window.chrome) {
+                        document.addEventListener('visibilitychange', function () {
+                            if (document.visibilityState === 'hidden') {
+                                console.log("visibilitychanged HIDDEN!");
+                                html5Player.stop(); // Uncaught TypeError: html5Player.stop is not a function. at HTMLDocument.<anonymous> (index.html:131:45)
+                                //player.stop();
+                            } else {
+                                // Automatic jump to buffer end for view live video when returning to the web page. 
+                                console.log("visibilitychanged NOT HIDDEN!");
+                                console.log("buffer length=" + html5Player.buffered.length);
+                                // setPlayerSource('rtsp://' + hostName + '/' + channel);
+                                console.log("after setPlayerSource() buffer length=" + html5Player.buffered.length);
+
+                                if (html5Player.buffered.length > 0) { //버퍼에 저장된게 있는지 확인
+                                    console.log("visibilitychanged! there are something in buffer");
+                                    html5Player.play();
+                                    setPlayerSource('rtsp://' + hostName + '/' + channel);
+                                    setTimeout(function () {
+                                        html5Player.currentTime = html5Player.buffered.end(0);
+                                    }, 2000); // Delay for a few seconds is required for the player has time to update the timeline.
+                                }
+                            }
+                        });
+                    }
+                    html5Player.onclick = (event) => {
+                        console.log('html5Player.onclick !!!', event);
+                        event.preventDefault();
+                    }
+
+                    html5Player.ondblclick = () => {
+                        console.log('html5Player.ondblclick !!!');
+                        html5Player.requestFullscreen().catch(err => {
+                            alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+                        });
+                    }
+                }
+                console.log(html5Player);
+            }
+        }
+    </script>
+</body>
+
+</html>

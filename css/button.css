@@ -1,0 +1,28 @@
+.btn 
+{
+	/*background-color: #e7e7e7; */
+	/*color: black;*/
+	overflow: visible;
+	border: 1px solid #767676;
+	background-color: #e6e6e6;
+    display: inline-block;
+
+	font-size: 16px;
+	padding: 5px 15px;
+
+	margin-bottom: 10px;
+	/*border-radius: 4px;*/
+	-webkit-transition-duration: 0.4s; /* Safari */
+	transition-duration: 0.1s;
+
+	text-align: center;
+	vertical-align: middle;
+}
+.btn:hover 
+{
+	border: 1px solid #005caa;
+	color: #005caa;
+	cursor: pointer;
+	/*background-color: #555555;*/ /* BLACK */
+	/*color: white;*/
+}

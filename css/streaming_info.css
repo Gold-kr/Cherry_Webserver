@@ -1,0 +1,29 @@
+@import url('//fonts.googleapis.com/earlyaccess/nanumgothic.css');
+html, body 
+{
+	color: #767676;
+	font-family : Nanum Gothic;
+	font-size: 14px;
+	line-height : 1.9em;
+	margin: 0px;
+}
+p
+{
+	margin: 5px 0px;
+}
+.info
+{
+	margin-top: 5px;
+	background-color: #e6e6e6;
+	border-top: 2px solid #767676;
+	border-bottom: 2px solid #767676;
+	padding: 7px 14px;
+	line-height: 1.5em;
+}
+.info .record {text-align: center;}
+.info .record .key, .info .record .rval
+{
+	text-align: left;
+	display: inline-block;
+	width: 150px;
+}
