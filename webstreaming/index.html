@@ -44,25 +44,30 @@
 
         function processFn(event) {
             console.log("processFn:" + event);
+
             if (!'data' in event)
                 return;
-            console.log("webstreaming/index.html get processFn " + event.data + "," + event.origin);
+                
+            console.log("webstreaming/index.html get processFn ", event.data, event.origin);
+
             var sJson = event.data;
             console.log(sJson);
+
             // if(sJson.cmd == "streaming_info")
             // {
             //     console.log("index.html get streaming_info");
             //     alert(sJson);
             //     document.getElementById("id_main_right_side").contentWindow.postMessage(sJson, '*');
             // }
+
             hostName = sJson.ip;
             console.log("ip=" + hostName);
             var channel = sJson.name;
+
             if (sJson.codec == "H265") {
                 console.log("codec is H265. show nothing");
                 player.stop();
-            }
-            else if (sJson.codec == "H264") {
+            } else if (sJson.codec == "H264") {
                 console.log("codec is H264");
                 console.log("window.QdisPlayer is " + window.QdisPlayer);
 
@@ -79,12 +84,12 @@
 
                     var playerOptions = {
                         socket: 'ws://' + hostName + ':8088/',
-                        //socket: 'ws://115.94.37.213:8088/',
+                        // socket: 'ws://115.94.37.213:8088/',
                         redirectNativeMediaErrors: true,
                         bufferDuration: 30,
                         errorHandler: errHandler,
-                        videoFormatHandler: formatHandler,
-                        teardownNode: 'btn-stop'
+                        videoFormatHandler: formatHandler// ,
+                        // teardownNode: 'btn-stop'
                     };
 
                     function setPlayerSource(newSource) {
@@ -96,22 +101,21 @@
                         console.log(player);
                     }
 
-                    function formatDate(dateObj) {
-                        let month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                        let date = String(dateObj.getDate()).padStart(2, '0');
-                        let hours = String(dateObj.getHours()).padStart(2, '0');
-                        let minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                        let seconds = String(dateObj.getSeconds()).padStart(2, '0');
+                    // function formatDate(dateObj) {
+                    //     let month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    //     let date = String(dateObj.getDate()).padStart(2, '0');
+                    //     let hours = String(dateObj.getHours()).padStart(2, '0');
+                    //     let minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                    //     let seconds = String(dateObj.getSeconds()).padStart(2, '0');
 
-                        return `${dateObj.getFullYear()}-${month}-${date} ${hours}:${minutes}:${seconds}`;
-                    }
+                    //     return `${dateObj.getFullYear()}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+                    // }
 
                     html5Player = document.getElementById("video-player");
-                    var urlEdit = document.getElementById("stream_url");
+                    // var urlEdit = document.getElementById("stream_url");
 
                     player = QdisPlayer.player('video-player', playerOptions);
-                    console.log("player is ");
-                    console.log(player);
+                    console.log("player is ", player);
 
                     if (player.isPlaying()) {
                         console.log('isPlaying = true');
@@ -121,7 +125,6 @@
 
                     console.log("before setPlayerSource");
                     setPlayerSource('rtsp://' + hostName + '/' + channel);
-                    //player.start();
 
                     // Tab switching and window minimization processing 
                     // for browsers that use the chrome rendering engine.
@@ -129,26 +132,60 @@
                         document.addEventListener('visibilitychange', function () {
                             if (document.visibilityState === 'hidden') {
                                 console.log("visibilitychanged HIDDEN!");
-                                html5Player.stop(); // Uncaught TypeError: html5Player.stop is not a function. at HTMLDocument.<anonymous> (index.html:131:45)
-                                //player.stop();
+                                player.stop();
                             } else {
                                 // Automatic jump to buffer end for view live video when returning to the web page. 
                                 console.log("visibilitychanged NOT HIDDEN!");
-                                console.log("buffer length=" + html5Player.buffered.length);
-                                // setPlayerSource('rtsp://' + hostName + '/' + channel);
-                                console.log("after setPlayerSource() buffer length=" + html5Player.buffered.length);
+                                console.log("buffer length = " + html5Player.buffered.length);
 
-                                if (html5Player.buffered.length > 0) { //버퍼에 저장된게 있는지 확인
-                                    console.log("visibilitychanged! there are something in buffer");
-                                    html5Player.play();
+                                if (!player.isPlaying()) {
+                                    console.log('btnStart.onclick isPlaying =  false !!!');
                                     setPlayerSource('rtsp://' + hostName + '/' + channel);
-                                    setTimeout(function () {
-                                        html5Player.currentTime = html5Player.buffered.end(0);
-                                    }, 2000); // Delay for a few seconds is required for the player has time to update the timeline.
+                                } else {
+                                    console.log('btnStart.onclick isPlaying =  true !!!');
                                 }
+
+                                // setPlayerSource('rtsp://' + hostName + '/' + channel);
+
+                                // console.log("after setPlayerSource() buffer length=" + html5Player.buffered.length);
+
+                                // if (html5Player.buffered.length > 0) { //버퍼에 저장된게 있는지 확인
+                                //     console.log("visibilitychanged! there are something in buffer");
+                                //     html5Player.play();
+                                //     setPlayerSource('rtsp://' + hostName + '/' + channel);
+                                //     setTimeout(function () {
+                                //         html5Player.currentTime = html5Player.buffered.end(0);
+                                //     }, 2000); // Delay for a few seconds is required for the player has time to update the timeline.
+                                // }
                             }
                         });
                     }
+
+                    // if (!!window.chrome) {
+                    //     document.addEventListener('visibilitychange', function () {
+                    //         if (document.visibilityState === 'hidden') {
+                    //             console.log("visibilitychanged HIDDEN!");
+                    //             html5Player.stop(); // Uncaught TypeError: html5Player.stop is not a function. at HTMLDocument.<anonymous> (index.html:131:45)
+                    //             //player.stop();
+                    //         } else {
+                    //             // Automatic jump to buffer end for view live video when returning to the web page. 
+                    //             console.log("visibilitychanged NOT HIDDEN!");
+                    //             console.log("buffer length=" + html5Player.buffered.length);
+                    //             // setPlayerSource('rtsp://' + hostName + '/' + channel);
+                    //             console.log("after setPlayerSource() buffer length=" + html5Player.buffered.length);
+
+                    //             if (html5Player.buffered.length > 0) { //버퍼에 저장된게 있는지 확인
+                    //                 console.log("visibilitychanged! there are something in buffer");
+                    //                 html5Player.play();
+                    //                 setPlayerSource('rtsp://' + hostName + '/' + channel);
+                    //                 setTimeout(function () {
+                    //                     html5Player.currentTime = html5Player.buffered.end(0);
+                    //                 }, 2000); // Delay for a few seconds is required for the player has time to update the timeline.
+                    //             }
+                    //         }
+                    //     });
+                    // }
+
                     html5Player.onclick = (event) => {
                         console.log('html5Player.onclick !!!', event);
                         event.preventDefault();
@@ -161,6 +198,7 @@
                         });
                     }
                 }
+
                 console.log(html5Player);
             }
         }
