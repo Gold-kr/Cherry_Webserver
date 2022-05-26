@@ -1,4 +1,4 @@
-var debug_streaming = false;
+var debug_streaming = true;
 
 function appendByteArray(buffer1, buffer2) {
     let tmp = new Uint8Array((buffer1.byteLength|0) + (buffer2.byteLength|0));
@@ -31,7 +31,7 @@ function hexToByteArray(hex) {
     return bufView;
 }
 
-function bitSlice(bytearray, start=0, end=bytearray.byteLength*8) {
+function bitSlice(bytearray, start = 0, end = bytearray.byteLength * 8) {
     let byteLen = Math.ceil((end-start)/8);
     let res = new Uint8Array(byteLen);
     let startByte = start >>> 3;   // /8
@@ -893,7 +893,12 @@ class RTSPClientSM extends StateMachine {
             activate: this.sendSetup,
             finishTransition: this.onSetup
         }).addState(RTSPClientSM.STATE_STREAMS, {
-
+            activate: () => {
+                console.log(this.TAG, 'in RTSPClientSM.STATE_STREAMS !!!');
+            },
+            finishTransition: () => {
+                console.log(this.TAG, 'out RTSPClientSM.STATE_STREAMS !!!');
+            }
         }).addState(RTSPClientSM.STATE_TEARDOWN, {
             activate: () => {
                 this.started = false;
@@ -1092,8 +1097,7 @@ class RTSPClientSM extends StateMachine {
         }
 
         var param = JSON.parse(JSON.stringify(_params));
-        if(debug_streaming)
-            console.log("param = " + _params)
+
         if (_cmd == 'GET_PARAMETER') {
             //delete json['User-Agent'];
 
@@ -1102,9 +1106,9 @@ class RTSPClientSM extends StateMachine {
             }
         }
 
-        console.log(this.TAG + 'WSP/1.1 GET_PARAMETER _cmd', _cmd);
-        console.log(this.TAG + 'WSP/1.1 GET_PARAMETER _params', _params);
-        console.log(this.TAG + 'WSP/1.1 GET_PARAMETER param', param);
+        console.log(this.TAG + '_cmd', _cmd);
+        console.log(this.TAG + '_params', _params);
+        console.log(this.TAG + 'param', param);
 
         return this.send(MessageBuilder.build(_cmd, _host, param, _payload), _cmd).catch((e) => {
             if ((e instanceof AuthError) && !param['Authorization'] ) {
@@ -3410,8 +3414,8 @@ class H264Parser {
         if (!unit) return false;
         
         let push = null;
-        if(debug_streaming)
-            console.log(this.TAG, unit.toString());
+
+        if (debug_streaming) console.log(this.TAG, unit.toString());
 
         switch (unit.type()) {
             case NALU.NDR:
@@ -3480,8 +3484,9 @@ class H264Parser {
                 pay_size += sz;
 
                 let uuid = unit.data.subarray(byte_idx, byte_idx+16);
-                byte_idx+=16;
-                if(debug_streaming)
+                byte_idx += 16;
+
+                if (debug_streaming)
                     console.log(this.TAG + `PT: ${pay_type}, PS: ${pay_size}, UUID: ${Array.from(uuid).map(function(i) {
                         return ('0' + i.toString(16)).slice(-2);
                     }).join('')}`);
@@ -3495,6 +3500,7 @@ class H264Parser {
         if (push === null && unit.getNri() > 0 ) {
             push = true;
         }
+
         return push;
     }
 
@@ -3685,7 +3691,7 @@ class H264Parser {
                 let fixedFrameRate = decoder.readBoolean();
                 let frameDuration = timeScale / (2 * unitsInTick);
 
-                if(debug_streaming)
+                if (debug_streaming)
                     console.log('[H264Parser] ' + `timescale: ${timeScale}; unitsInTick: ${unitsInTick}; fixedFramerate: ${fixedFrameRate}; avgFrameDuration: ${frameDuration}`);
             }
         }
@@ -4114,12 +4120,12 @@ class AACFrame {
             0x00, 0x00, 0x00, // flags
 
             0x03, // descriptor_type
-            0x17+configlen, // length
+            0x17 + configlen, // length
             0x00, 0x01, //es_id
             0x00, // stream_priority
 
             0x04, // descriptor_type
-            0x0f+configlen, // length
+            0x0f + configlen, // length
             0x40, //codec : mpeg4_audio
             0x15, // stream_type
             0x00, 0x00, 0x00, // buffer_size
@@ -5198,6 +5204,35 @@ class StreamType {
     }
 }
 
+function handleErrorEvent(sessions, player) {
+    console.log(this.TAG, 'errorCode = ', errorCode);
+    console.log(this.TAG, 'sessions = ', sessions);
+    console.log(this.TAG, 'player = ', player);
+
+    var session = '';
+    var state;
+    var errorCode = player.error.code;
+
+    for (var key in sessions) {
+        console.log(key);
+        console.log(sessions[key].state);
+
+        if (key) {
+            session = key;
+            state = sessions[key].state;
+            break;
+        }
+    }
+
+    if (state == RTSPClientSM.STATE_TEARDOWN) {
+        if (errorCode != 4) {
+            this.error(errorCode);
+        }
+    } else {
+        this.error(errorCode);
+    }
+}
+
 class WSPlayer {
     constructor(node, opts) {
         this.TAG = '[WSPlayer] ';
@@ -5271,7 +5306,9 @@ class WSPlayer {
             this.setSource(this.url, this.type);
         }
 
-        this.player.addEventListener('play', this.handlePlayEvent(this.isPlaying), false);
+        console.log(this.TAG, 'addEventListener = play');
+        // this.player.addEventListener('play', this.handlePlayEvent(this.isPlaying), false);
+        // this.player.addEventListener('play', this.handlePlayEvent(), false);
 
         // this.btnTeardown.onclick = () => {
         //     console.log('Click STOP TEARDOWN !!!!');
@@ -5309,23 +5346,48 @@ class WSPlayer {
             opts.redirectNativeMediaErrors : true;
 
         if (this.redirectNativeMediaErrors) {
-            this.player.addEventListener('error', () => {
-                this.error(this.player.error.code);
-            }, false);
+            if (this.client) {
+                this.player.addEventListener('error', () => {
+                    var sessions = this.client.clientSM.sessions;
+                    var session = '';
+                    var state;
+
+                    for (var key in sessions) {
+                        console.log(key);
+                        console.log(sessions[key].state);
+
+                        if (key) {
+                            session = key;
+                            state = sessions[key].state;
+                            break;
+                        }
+                    }
+    
+                    if (state == RTSPClientSM.STATE_TEARDOWN || session == '') {
+                        if (this.player.error.code != 4) {
+                            this.error(this.player.error.code);
+                        }
+                    } else {
+                        this.error(this.player.error.code);
+                    }
+                }, false);
+            }
         }
     }
 
     handlePlayEvent(isPlaying) {
-        console.log(this.TAG, 'Click PLAY !!!!', 'this.isPlaying() = ', isPlaying);
+        console.log(this.TAG, 'handlePlayEvent() !!! ', 'isPlaying = ', isPlaying);
 
         if (!isPlaying) {
-            console.log(this.TAG, 'Click PLAY !!!!', 'this.isPlaying() in if');
+            console.log(this.TAG, 'handlePlayEvent() !!! ', 'isPlaying in if');
 
             if (this.client) {
-                console.log(this.TAG, 'Click PLAY !!!!', 'his.client in if');
+                console.log(this.TAG, 'handlePlayEvent() !!! ', 'his.client in if');
 
                 this.client.start();
             }
+        } else {
+            console.log(this.TAG, 'handlePlayEvent() !!! ', 'isPlaying = true in if !!!');
         }
     }
 
@@ -5418,6 +5480,7 @@ class WSPlayer {
         let lastType = this.type;
         this.type = (StreamType.isSupported(type)? type:false) || StreamType.fromMime(type);
         console.log("this type = " + this.type);
+
         if (!this.type) {
             this.error(SMediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
             return;
@@ -5475,6 +5538,8 @@ class WSPlayer {
         if (err !== undefined) {
             this.error_ = new SMediaError(err);
 
+            console.log(this.TAG);
+
             if (this.errorHandler){
                 // console.error(this.TAG + this.error_.message);
                 this.errorHandler(this.error_);
@@ -5484,7 +5549,7 @@ class WSPlayer {
         return this.error_;
     }
 
-    info(inf){
+    info(inf) {
         if (inf !== undefined) {
             if (this.infoHandler){
                 this.infoHandler(inf);
@@ -5527,6 +5592,8 @@ class WSPlayer {
     }
 
     stop() {
+        console.log(this.TAG + 'stop() !!!');
+
         if (this.client) {
             this.destroy();
         }
@@ -5551,7 +5618,11 @@ class WSPlayer {
             this.remuxer = null;
         }
 
-        this.player.removeEventListener('play', this.handlePlayEvent(this.isPlaying));
+        console.log(this.TAG, 'removeEventListener = play');
+        this.player.removeEventListener('error', () => {});
+
+        // this.player.removeEventListener('play', this.handlePlayEvent(this.isPlaying));
+        // this.player.removeEventListener('play', this.handlePlayEvent());
     }
 }
 
@@ -5580,7 +5651,7 @@ window.QdisPlayer = {
                 }
             ],
             errorHandler(e) {
-                console.log('[window.QdisPlayer] dataHandler', e);
+                console.log('[window.QdisPlayer] errorHandler', e);
 
                 if (opts.errorHandler) {
                     opts.errorHandler(e);
