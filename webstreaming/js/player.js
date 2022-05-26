@@ -5619,7 +5619,7 @@ class WSPlayer {
         }
 
         console.log(this.TAG, 'removeEventListener = play');
-        this.player.removeEventListener('error', () => {});
+        // this.player.removeEventListener('error', () => {});
 
         // this.player.removeEventListener('play', this.handlePlayEvent(this.isPlaying));
         // this.player.removeEventListener('play', this.handlePlayEvent());
