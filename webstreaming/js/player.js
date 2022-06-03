@@ -5204,14 +5204,13 @@ class StreamType {
     }
 }
 
-function handleErrorEvent(sessions, player) {
-    console.log(this.TAG, 'errorCode = ', errorCode);
-    console.log(this.TAG, 'sessions = ', sessions);
-    console.log(this.TAG, 'player = ', player);
+function handleErrorEvent() {
+    console.log('handleErrorEvent() !!!');
+    console.log('[window.QdisPlayer] node :', wsPlayer);
 
+    var sessions = wsPlayer.client.clientSM.sessions;
     var session = '';
     var state;
-    var errorCode = player.error.code;
 
     for (var key in sessions) {
         console.log(key);
@@ -5224,12 +5223,12 @@ function handleErrorEvent(sessions, player) {
         }
     }
 
-    if (state == RTSPClientSM.STATE_TEARDOWN) {
-        if (errorCode != 4) {
-            this.error(errorCode);
+    if (state == RTSPClientSM.STATE_TEARDOWN || session == '') {
+        if (wsPlayer.player.error.code != 4) {
+            wsPlayer.error(wsPlayer.player.error.code);
         }
     } else {
-        this.error(errorCode);
+        wsPlayer.error(wsPlayer.player.error.code);
     }
 }
 
@@ -5306,7 +5305,7 @@ class WSPlayer {
             this.setSource(this.url, this.type);
         }
 
-        console.log(this.TAG, 'addEventListener = play');
+        // console.log(this.TAG, 'addEventListener = play');
         // this.player.addEventListener('play', this.handlePlayEvent(this.isPlaying), false);
         // this.player.addEventListener('play', this.handlePlayEvent(), false);
 
@@ -5346,32 +5345,12 @@ class WSPlayer {
             opts.redirectNativeMediaErrors : true;
 
         if (this.redirectNativeMediaErrors) {
+            console.log(this.TAG, 'addEventListener = error');
+
             if (this.client) {
-                this.player.addEventListener('error', () => {
-                    var sessions = this.client.clientSM.sessions;
-                    var session = '';
-                    var state;
-
-                    for (var key in sessions) {
-                        console.log(key);
-                        console.log(sessions[key].state);
-
-                        if (key) {
-                            session = key;
-                            state = sessions[key].state;
-                            break;
-                        }
-                    }
-    
-                    if (state == RTSPClientSM.STATE_TEARDOWN || session == '') {
-                        if (this.player.error.code != 4) {
-                            this.error(this.player.error.code);
-                        }
-                    } else {
-                        this.error(this.player.error.code);
-                    }
-                }, false);
-            }
+                this.player.removeEventListener('error', handleErrorEvent, false);
+                this.player.addEventListener('error', handleErrorEvent, false);
+            }            
         }
     }
 
@@ -5534,7 +5513,7 @@ class WSPlayer {
             return undefined;
     }
 
-    error(err){
+    error(err) {
         if (err !== undefined) {
             this.error_ = new SMediaError(err);
 
@@ -5618,13 +5597,14 @@ class WSPlayer {
             this.remuxer = null;
         }
 
-        console.log(this.TAG, 'removeEventListener = play');
-        // this.player.removeEventListener('error', () => {});
+        // console.log(this.TAG, 'removeEventListener = play');        
 
         // this.player.removeEventListener('play', this.handlePlayEvent(this.isPlaying));
         // this.player.removeEventListener('play', this.handlePlayEvent());
     }
 }
+
+var wsPlayer;
 
 window.QdisPlayer = {
     logger(tag) {
@@ -5701,6 +5681,8 @@ window.QdisPlayer = {
             }
         };
 
-        return new WSPlayer(node, _options);
+        wsPlayer = new WSPlayer(node, _options);
+        
+        return wsPlayer;
     }
 };
