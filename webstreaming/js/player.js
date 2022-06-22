@@ -1,4 +1,4 @@
-var debug_streaming = true;
+var debug_streaming = false;
 
 function appendByteArray(buffer1, buffer2) {
     let tmp = new Uint8Array((buffer1.byteLength|0) + (buffer2.byteLength|0));
@@ -1659,6 +1659,8 @@ class RTSPSession {
     }
 
     async sendTeardown() {
+        console.log(this.TAG + 'RTSPClient: STATE_TEARDOWN IN !!!');
+
         if (this.state != RTSPClientSM.STATE_TEARDOWN) {
             this.state = RTSPClientSM.STATE_TEARDOWN;
             await this.sendRequest('TEARDOWN');
@@ -3719,7 +3721,7 @@ class AACFrame {
         this.dts = dts;
         this.pts = pts ? pts : this.dts;
 
-        this.data=data;//.subarray(offset);
+        this.data = data;//.subarray(offset);
     }
 
     getData() {
@@ -5206,9 +5208,9 @@ class StreamType {
 
 function handleErrorEvent() {
     console.log('handleErrorEvent() !!!');
-    console.log('[window.QdisPlayer] node :', wsPlayer);
+    console.log('[window.QdisWebStreamer] node :', currentWsPlayer);
 
-    var sessions = wsPlayer.client.clientSM.sessions;
+    var sessions = currentWsPlayer.client.clientSM.sessions;
     var session = '';
     var state;
 
@@ -5224,11 +5226,11 @@ function handleErrorEvent() {
     }
 
     if (state == RTSPClientSM.STATE_TEARDOWN || session == '') {
-        if (wsPlayer.player.error.code != 4) {
-            wsPlayer.error(wsPlayer.player.error.code);
+        if (currentWsPlayer.player.error.code != 4) {
+            currentWsPlayer.error(currentWsPlayer.player.error.code);
         }
     } else {
-        wsPlayer.error(wsPlayer.player.error.code);
+        currentWsPlayer.error(currentWsPlayer.player.error.code);
     }
 }
 
@@ -5236,8 +5238,9 @@ class WSPlayer {
     constructor(node, opts) {
         this.TAG = '[WSPlayer] ';
 
-        this.player = document.getElementById(node);
+        this.player = node;
         this.btnTeardown = document.getElementById(opts.teardownNode);
+
         console.log(this.TAG, node, opts);
 
         if (typeof opts.canvas == typeof '') {
@@ -5258,11 +5261,11 @@ class WSPlayer {
         this.dataHandler = opts.dataHandler || null;
         this.videoFormatHandler = opts.videoFormatHandler || null;
         this.queryCredentials = opts.queryCredentials || null;
-        this.bufferDuration_ = opts.bufferDuration || 120;
+        this.bufferDuration = opts.bufferDuration || 120;
 
-        if (isNaN(this.bufferDuration_) || (this.bufferDuration_ <= 0)){
+        if (isNaN(this.bufferDuration) || (this.bufferDuration <= 0)){
             console.log(this.TAG + "Expected number type for bufferDuration");
-            this.bufferDuration_ = 120;
+            this.bufferDuration = 120;
         }
 
         this.modules = {};
@@ -5287,17 +5290,22 @@ class WSPlayer {
         console.log('opts.url = ', opts.url);
 
         if (opts.url && opts.type) {
-            console.log(this.TAG, 'if true !!!');
+            console.log(this.TAG, 'if true !!!', opts.url, opts.type);
             this.url = opts.url;
             this.type = opts.type;
         } else {
             console.log(this.TAG, 'if false !!!');
+
             if (!this.checkSource(this.player)) {
+                console.log(this.TAG, 'checkSource() false !!!');
+
                 for (let i = 0; i < this.player.children.length; ++i) {
                     if (this.checkSource(this.player.children[i])) {
                         break;
                     }
                 }
+            } else {
+                console.log(this.TAG, 'checkSource() true !!!');
             }
         }        
 
@@ -5413,21 +5421,23 @@ class WSPlayer {
     }
 
     checkSource(src) {
-        console.log(this.TAG, 'checkSource() in !!!');
+        console.log(this.TAG, 'checkSource() in !!! src =', src.src);
 
         if (!src.dataset['ignore'] && src.src && !this.player.canPlayType(src.type) && (StreamType.fromMime(src.type) || StreamType.fromUrl(src.src))) {
             this.url = src.src;
             this.type = src.type ? StreamType.fromMime(src.type) : StreamType.fromUrl(src.src);
+
+            console.log(this.TAG, 'checkSource() in !!! src =', src.src, src.type, this.type);
             return true;
         }
 
-        console.log(this.TAG, 'checkSource() return false !!!');
+        console.log(this.TAG, 'checkSource() return false !!!', src.src);
 
         return false;
     }
 
     async setSource(url, type) {
-        console.log(this.TAG + 'url = ' + url + '   type = ' + type);
+        console.log(this.TAG, 'url = ' + url, '   type = ' + type);
 
         if (this.transport) {
             if (this.client) {
@@ -5438,8 +5448,8 @@ class WSPlayer {
         }
 
         try {
-            console.log("url = " + url);
             this.endpoint = Url.parse(url);
+            console.log(this.TAG, 'url = ' + url, 'this.endpoint = ', this.endpoint);
         } catch (e) {
             this.error(SMediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
             return;
@@ -5458,7 +5468,7 @@ class WSPlayer {
 
         let lastType = this.type;
         this.type = (StreamType.isSupported(type)? type:false) || StreamType.fromMime(type);
-        console.log("this type = " + this.type);
+        console.log(this.TAG, 'this type =', this.type);
 
         if (!this.type) {
             this.error(SMediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
@@ -5486,9 +5496,13 @@ class WSPlayer {
             this.remuxer = null;
         }
 
+        console.log(this.TAG, this.player.src, this.url);
+
         this.remuxer = new Remuxer(this.player);
-        this.remuxer.MSE.bufferDuration = this.bufferDuration_;
+        this.remuxer.MSE.bufferDuration = this.bufferDuration;
         this.remuxer.attachClient(this.client);
+
+        console.log(this.TAG, this.player.src, this.url);
 
         this.client.attachTransport(this.transport);
         this.client.setSource(this.endpoint);
@@ -5496,12 +5510,15 @@ class WSPlayer {
             this.videoFormatEvent(event.detail);
         });
 
+        console.log(this.TAG, this);
+        console.log(this.TAG, this.player.src, this.url);
+
         this.start();
     }
 
     set bufferDuration(duration){
         if (this.remuxer && this.remuxer.MSE) {
-            this.bufferDuration_ = duration;
+            this.bufferDuration = duration;
             this.remuxer.MSE.bufferDuration = duration;
         }
     }
@@ -5604,20 +5621,17 @@ class WSPlayer {
     }
 }
 
-var wsPlayer;
+var currentWsPlayer;
 
-window.QdisPlayer = {
-    logger(tag) {
-        return getTagged(tag)
-    },
-    player(node, opts) {
-        console.log('[window.QdisPlayer] node :', node, 'opts :', opts);
+window.WsPlayerBuilder = {
+    builder(qdisPlayer, opts) {
+        console.log('[window.QdisWebStreamer] node :', qdisPlayer, 'opts :', opts);
 
         if (!opts.socket) {
             throw new Error("socket parameter is not set");
         }
 
-        let _options = {
+        let options = {
             teardownNode: 'btn-stop',
             modules: [
                 {
@@ -5631,7 +5645,7 @@ window.QdisPlayer = {
                 }
             ],
             errorHandler(e) {
-                console.log('[window.QdisPlayer] errorHandler', e);
+                console.log('[window.QdisWebStreamer] errorHandler', e);
 
                 if (opts.errorHandler) {
                     opts.errorHandler(e);
@@ -5640,21 +5654,21 @@ window.QdisPlayer = {
                 }
             },
             infoHandler(inf) {
-                console.log('[window.QdisPlayer] infoHandler', inf);
+                console.log('[window.QdisWebStreamer] infoHandler', inf);
 
                 if (opts.infoHandler) {
                     opts.infoHandler(inf);
                 }
             },
             dataHandler(data, prefix) {
-                console.log('[window.QdisPlayer] dataHandler', data);
+                console.log('[window.QdisWebStreamer] dataHandler', data);
 
                 if (opts.dataHandler) {
                     opts.dataHandler(data, prefix);
                 }
             },
             videoFormatHandler(format) {
-                console.log('[window.QdisPlayer] videoFormatHandler', format);
+                console.log('[window.QdisWebStreamer] videoFormatHandler', format);
 
                 if (opts.videoFormatHandler) {
                     opts.videoFormatHandler(format);
@@ -5680,9 +5694,54 @@ window.QdisPlayer = {
                 });
             }
         };
-
-        wsPlayer = new WSPlayer(node, _options);
         
-        return wsPlayer;
+        currentWsPlayer = new WSPlayer(qdisPlayer, options);
+
+        return currentWsPlayer;
     }
 };
+
+class QdisPlayer extends HTMLVideoElement {
+    constructor() {
+        super();
+        this.TAG = '[QdisPlayer]';
+
+        console.log(this.TAG, this);
+    }
+
+    connectedCallback() {
+        console.log('connectedCallback()');
+    }
+
+    disconnectedCallback() {
+        console.log('disconnectedCallback()');
+        // browser calls this method when the element is removed from the document
+        // (can be called many times if an element is repeatedly added/removed)
+    }
+
+    static get observedAttributes() {
+        console.log('observedAttributes()');
+        return ['autoplay', 'controls', 'muted'];
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        console.log('attributeChangedCallback', name, oldValue, newValue);
+
+        switch (name) {
+            case 'muted':
+                if (newValue == 'muted') {
+                    this.muted = true;
+                }
+
+                break;
+        }
+    }
+
+    adoptedCallback() {
+        console.log('adoptedCallback()');
+        // called when the element is moved to a new document
+        // (happens in document.adoptNode, very rarely used)
+    }
+}
+
+customElements.define('qdis-player', QdisPlayer, {extends: 'video'});

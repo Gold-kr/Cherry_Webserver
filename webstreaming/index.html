@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width">
     <title>QdisPlayer RTSP player example</title>
+    <script src="js/player.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
         html,
@@ -21,137 +22,112 @@
 </head>
 
 <body>
-
     <div class="relative" style="width:100%; height:100%;">
         <div class="relative">
-            <video class="absolute" id="video-player" controls autoplay muted="muted">
+            <video is="qdis-player" class="absolute" id="qdis-player" controls autoplay muted="muted">
                 해당 브라우저는 스트리밍을 지원하지 않습니다.
             </video>
         </div>
     </div>
 
-    <script src="js/player.js"></script>
-
     <script>
-        console.log("webstreaming/index.html loaded");
-        //var hostName = "location.hostname";
+        console.log('webstreaming/index.html loaded');
+
         var hostName;
-        //console.log(hostName);
-        var player;
-        var html5Player;
+        var channel;
+        var wsPlayer;
+        var qdisPlayer = document.getElementById('qdis-player');
 
-        window.addEventListener("message", processFn, false);
+        window.addEventListener('DOMContentLoaded', () => {
+            window.addEventListener('message', processFn, false);
 
-        function processFn(event) {
-            console.log("processFn:" + event);
+            function processFn(event) {
+                console.log('processFn()', event);
 
-            if (!'data' in event)
-                return;
+                if (!'data' in event)
+                    return;
+
+                var sJson = event.data;
+                console.log(sJson);
                 
-            console.log("webstreaming/index.html get processFn ", event.data, event.origin);
+                hostName = sJson.ip;
+                channel = sJson.name;
 
-            var sJson = event.data;
-            console.log(sJson);
+                if (sJson.codec == 'H265') {
+                    console.log('codec is H265. show nothing');
+                    // player.stop();
+                } else if (sJson.codec == 'H264') {
+                    console.log('codec is H264');
+                    console.log('window.QdisWebStreamer is ', window.WsPlayerBuilder);
 
-            // if(sJson.cmd == "streaming_info")
-            // {
-            //     console.log("index.html get streaming_info");
-            //     alert(sJson);
-            //     document.getElementById("id_main_right_side").contentWindow.postMessage(sJson, '*');
-            // }
+                    if (window.WsPlayerBuilder) {
+                        setPlayerSource('rtsp://' + hostName + '/' + channel);
 
-            hostName = sJson.ip;
-            console.log("ip=" + hostName);
-            var channel = sJson.name;
+                        // Tab switching and window minimization processing 
+                        // for browsers that use the chrome rendering engine.
+                        if (!!window.chrome) {
+                            document.addEventListener('visibilitychange', function () {
+                                if (document.visibilityState === 'hidden') {
+                                    console.log('visibilitychanged HIDDEN!');
 
-            if (sJson.codec == "H265") {
-                console.log("codec is H265. show nothing");
-                player.stop();
-            } else if (sJson.codec == "H264") {
-                console.log("codec is H264");
-                console.log("window.QdisPlayer is " + window.QdisPlayer);
+                                    if (wsPlayer) {
+                                        wsPlayer.stop();
+                                    }
+                                } else {
+                                    console.log('visibilitychanged VISIBLE!');
 
-                if (window.QdisPlayer) {
-                    let errHandler = function (err) {
-                        alert(err.message);
-                    };
-
-                    let formatHandler = function (format) {
-                        if (html5Player) {
-                            html5Player.removeAttribute('hidden');
+                                    setPlayerSource('rtsp://' + hostName + '/' + channel);
+                                }
+                            });
                         }
                     }
+                }
+            }
 
-                    var playerOptions = {
-                        socket: 'ws://' + hostName + ':8088/',
-                        // socket: 'ws://115.94.37.213:8088/',
-                        redirectNativeMediaErrors: true,
-                        bufferDuration: 30,
-                        errorHandler: errHandler,
-                        videoFormatHandler: formatHandler// ,
-                        // teardownNode: 'btn-stop'
-                    };
+            function setPlayerSource(newSource) {
+                console.log('setPlayerSource() !!!');
 
-                    function setPlayerSource(newSource) {
-                        player.destroy();
-                        player = null;
-                        html5Player.src = newSource;
-                        player = QdisPlayer.player("video-player", playerOptions);
-                        console.log("setPlayerSource!");
-                        console.log(player);
-                    }
+                if (wsPlayer) {
+                    wsPlayer.destroy();
+                }
 
-                    html5Player = document.getElementById("video-player");
+                let errHandler = function (err) {
+                    alert(err.message);
+                };
 
-                    player = QdisPlayer.player('video-player', playerOptions);
-                    console.log("player is ", player);
-
-                    if (player.isPlaying()) {
-                        console.log('isPlaying = true');
-                    } else {
-                        console.log('isPlaying = false');
-                    }
-
-                    console.log("before setPlayerSource");
-                    setPlayerSource('rtsp://' + hostName + '/' + channel);
-
-                    // Tab switching and window minimization processing 
-                    // for browsers that use the chrome rendering engine.
-                    if (!!window.chrome) {
-                        document.addEventListener('visibilitychange', function () {
-                            if (document.visibilityState === 'hidden') {
-                                console.log("visibilitychanged HIDDEN!");
-                                player.stop();
-                            } else {
-                                console.log("visibilitychanged NOT HIDDEN!");
-                                console.log("buffer length = " + html5Player.buffered.length);
-
-                                if (!player.isPlaying()) {
-                                    console.log('btnStart.onclick isPlaying =  false !!!');
-                                    setPlayerSource('rtsp://' + hostName + '/' + channel);
-                                } else {
-                                    console.log('btnStart.onclick isPlaying =  true !!!');
-                                }
-                            }
-                        });
-                    }
-
-                    html5Player.onclick = (event) => {
-                        console.log('html5Player.onclick !!!', event);
-                        event.preventDefault();
-                    }
-
-                    html5Player.ondblclick = () => {
-                        console.log('html5Player.ondblclick !!!');
-                        html5Player.requestFullscreen().catch(err => {
-                            alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
-                        });
+                let formatHandler = function (format) {
+                    if (qdisPlayer) {
+                        qdisPlayer.removeAttribute('hidden');
                     }
                 }
 
-                console.log(html5Player);
+                var option = {
+                    socket: 'ws://' + hostName + ':8088/',
+                    // socket: 'ws://115.94.37.213:8088/',
+                    redirectNativeMediaErrors: true,
+                    bufferDuration: 120,
+                    errorHandler: errHandler,
+                    videoFormatHandler: formatHandler
+                };
+
+                qdisPlayer.src = newSource;
+
+                qdisPlayer.onclick = (event) => {
+                    console.log('qdisPlayer.onclick !!!', event);
+                    event.preventDefault();
+                }
+
+                qdisPlayer.ondblclick = () => {
+                    console.log('qdisPlayer.ondblclick !!!');
+                    qdisPlayer.requestFullscreen().catch(err => {
+                        alert(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+                    });
+                }
+
+                wsPlayer = null;
+                wsPlayer = WsPlayerBuilder.builder(qdisPlayer, option);
             }
-        }
+        });
     </script>
 </body>
 
