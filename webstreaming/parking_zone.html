@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>QdisPlayer RTSP player example</title>
+    <script src="js/player.js"></script>
+    <script src="js/parking-zone.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div style="margin-left: 50px;">
+        <div id="parking-zone" class="zone" width="1000" height="750" style="overflow: scroll;">
+            <video is="qdis-player" class="absolute" id="qdis-player" width="1000" height="750" controls autoplay muted="muted">
+                해당 브라우저는 스트리밍을 지원하지 않습니다.
+            </video>
+
+            <img id="capture-img" class="absolute" width="1000" height="750">
+            <canvas id="canvas" class="absolute" width="1000" height="750"></canvas>
+
+            <div id="control-pannel" class="control-pannel" style="float: left; width: 90px;">
+                <button id="btn-zoom-in" style="width: 30px;">+</button>
+                <button id="btn-zoom-out" style="width: 30px;">-</button>
+                <button id="btn-back" style="width: 30px;">←</button>
+                <button id="btn-close" style="width: 30px;">↲</button>
+                <button id="btn-clear" style="width: 30px;">C</button>
+                <button id="btn-all-clear" style="width: 30px;">AC</button>
+                
+                <div id="area-select" style="float: left; width: 80px; margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <button id="btn-load-img-file" style="width: 130px;">Load Img File</button>
+        <button id="btn-load-capture-img" style="width: 130px;">Load Capture Img</button>
+        <button id="btn-mode-toggle" style="width: 130px;">Monitor Mode</button>
+        <button id="btn-test">test</button>
+    </div>
+</body>
+</html>
