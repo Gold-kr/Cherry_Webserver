@@ -5208,7 +5208,6 @@ class StreamType {
 
 function handleErrorEvent() {
     console.log('handleErrorEvent() !!!');
-    console.log('[window.QdisWebStreamer] node :', currentWsPlayer);
 
     var sessions = currentWsPlayer.client.clientSM.sessions;
     var session = '';
@@ -5625,7 +5624,7 @@ var currentWsPlayer;
 
 window.WsPlayerBuilder = {
     builder(qdisPlayer, opts) {
-        console.log('[window.QdisWebStreamer] node :', qdisPlayer, 'opts :', opts);
+        console.log('[window.WsPlayerBuilder] node :', qdisPlayer, 'opts :', opts);
 
         if (!opts.socket) {
             throw new Error("socket parameter is not set");
@@ -5645,7 +5644,7 @@ window.WsPlayerBuilder = {
                 }
             ],
             errorHandler(e) {
-                console.log('[window.QdisWebStreamer] errorHandler', e);
+                console.log('[window.WsPlayerBuilder] errorHandler', e);
 
                 if (opts.errorHandler) {
                     opts.errorHandler(e);
@@ -5654,21 +5653,21 @@ window.WsPlayerBuilder = {
                 }
             },
             infoHandler(inf) {
-                console.log('[window.QdisWebStreamer] infoHandler', inf);
+                console.log('[window.WsPlayerBuilder] infoHandler', inf);
 
                 if (opts.infoHandler) {
                     opts.infoHandler(inf);
                 }
             },
             dataHandler(data, prefix) {
-                console.log('[window.QdisWebStreamer] dataHandler', data);
+                console.log('[window.WsPlayerBuilder] dataHandler', data);
 
                 if (opts.dataHandler) {
                     opts.dataHandler(data, prefix);
                 }
             },
             videoFormatHandler(format) {
-                console.log('[window.QdisWebStreamer] videoFormatHandler', format);
+                console.log('[window.WsPlayerBuilder] videoFormatHandler', format);
 
                 if (opts.videoFormatHandler) {
                     opts.videoFormatHandler(format);

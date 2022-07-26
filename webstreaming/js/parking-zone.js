@@ -1,6 +1,7 @@
 const MODE_EDITOR = 0;
 const MODE_MONITOR = 1;
 const CAPTURE_IMG_URL = 'http://115.94.37.213:8080/video/capture?mode=0&rand=';
+// const CAPTURE_IMG_URL = 'images/test_img.jpg';
 
 var editAreas = new Array();//Edit Mode 영역 데이터
 var monitorAreas = new Array();//Monitor Mode 영역 데이터
@@ -67,6 +68,9 @@ function init(){
     
     parkingZone.addEventListener('wheel', wheelScrollHandler, false);
     parkingZone.addEventListener('mousedown', mouseDownHandler, false);
+    captureImg.addEventListener('load', () => {
+        // 이미지 로드 완료 이벤트 리스너        
+    }, false);
     canvas.addEventListener('click', getClickPosition, false);
     btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
     btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
@@ -76,15 +80,17 @@ function init(){
     btnAllClear.addEventListener('click', btnAllClearOnClick, false);
     
     btnLoadImgFile.addEventListener('click', openImgFile, false);
+    // btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL)}, false);
     btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
     btnModeToggle.addEventListener('click', changeMode, false);
-    btnTest.addEventListener('click', inputMonitorTestData, false);
+    btnTest.addEventListener('click', getAreas, false);
 
     qdisPlayer.style.display = 'none';
 
     ctrlPannel.style.top = parkingZone.offsetTop + 'px';
     ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
     
+    // setCapturedImage(CAPTURE_IMG_URL);
     setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
 }
 
@@ -201,7 +207,7 @@ function wheelScrollHandler(event) {
         if (scale > 4) scale = 4;
         else if (scale < 1) scale = 1;
 
-        changePreviewSize(event.layerX, event.layerY);
+        changePreviewSize();
     }
 }
 
@@ -244,6 +250,7 @@ function btnBackOnClick() {
 
         console.log('areaIndex = ', areaIndex);
         
+        selectArea();
         drawArea();
     }
 }
@@ -259,9 +266,38 @@ function btnBackOnClick() {
 }
 
 /**
+ * btnClear 클릭시 동작
+ */
+function btnClearOnClick() {
+    console.log('before btnClearOnClick() areaIndex = ', areaIndex, 'areas = ', editAreas);
+
+    if (areaIndex == editAreas.length - 1) {
+        editAreas.pop();
+        areaIndex = -1;
+    } else {
+        editAreas.splice(areaIndex, 1, {path: new Array()});
+    }
+
+    console.log('after btnClearOnClick() areaIndex = ', areaIndex, 'areas = ', editAreas);
+
+    selectArea();
+    drawArea();
+}
+
+/**
+ * btnAllClear 클릭시 동작
+ */
+function btnAllClearOnClick() {
+    editAreas = new Array();
+    areaIndex = -1;
+
+    drawArea();
+}
+
+/**
  * 데이터 없는 영역 버튼 유동적 생성
  */
-function selectArea(){
+ function selectArea(){
     for (var i = 0; i < areaSelector.length; i++) {
         areaSelector[i].removeEventListener('click', areaSelectorClicked, false);
         areaSelect.removeChild(areaSelector[i]);
@@ -270,7 +306,7 @@ function selectArea(){
     areaSelector = new Array();
 
     for (var i = 0; i < editAreas.length; i++) {
-        if (editAreas[i].path.length == 0) {
+        if (editAreas[i].path.length < 3) {
             console.log('empty areaIndex = ', i);
 
             var btn = document.createElement("button");
@@ -301,39 +337,9 @@ function areaSelectorClicked(event) {
 }
 
 /**
- * btnClear 클릭시 동작
- */
-function btnClearOnClick() {
-    console.log('before btnClearOnClick() areaIndex = ', areaIndex, 'areas = ', editAreas);
-
-    if (areaIndex == editAreas.length - 1) {
-        editAreas.pop();
-        areaIndex = -1;
-    } else {
-        editAreas.splice(areaIndex, 1, {path: new Array()});
-    }
-
-    console.log('after btnClearOnClick() areaIndex = ', areaIndex, 'areas = ', editAreas);
-
-    drawArea();
-}
-
-/**
- * btnAllClear 클릭시 동작
- */
-function btnAllClearOnClick() {
-    editAreas = new Array();
-    areaIndex = -1;
-
-    drawArea();
-}
-
-/**
  * 스케일 조정된 이미지 화면 표시
- * @param {*} layerX 
- * @param {*} layerY 
  */
-function changePreviewSize(layerX, layerY) {
+function changePreviewSize() {
     var width = parkingZone.offsetWidth;
     var height = parkingZone.offsetHeight;
     var clientWidth = parkingZone.clientWidth;
@@ -341,7 +347,7 @@ function changePreviewSize(layerX, layerY) {
     var scrollLeft = parkingZone.scrollLeft;
     var scrollTop = parkingZone.scrollTop;
 
-    console.log('before scrollLeft = ' + scrollLeft + '   scrollTop = ' + scrollTop + '   scale = ' + scale + '   layerX = ' + layerX + '   layerY = ' + layerY);
+    console.log('before scrollLeft = ' + scrollLeft + '   scrollTop = ' + scrollTop + '   scale = ' + scale);
 
     // var offsetX = (captureImg.offsetWidth - clientWidth) / 2 - scrollLeft;
     // var offsetY = (captureImg.offsetHeight - clientHeight) / 2 - scrollTop;
@@ -399,7 +405,7 @@ function getClickPosition(event) {
                 editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale), y: Math.round(event.layerY / scale)});
             }
         } else {
-            if (selectedAreaIndex > -1){
+            if (selectedAreaIndex > -1 && areaIndex != selectedAreaIndex){
                 areaIndex = selectedAreaIndex;
             } else {
                 editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale), y: Math.round(event.layerY / scale)});
@@ -457,18 +463,23 @@ function drawEditPath(points, index){
                 ctx.moveTo(points[i].x, points[i].y);
             } else if (i == points.length - 1) {
                 ctx.lineTo(points[i].x, points[i].y);
-                ctx.lineTo(points[0].x, points[0].y);
+
+                if (index != areaIndex) {                    
+                    ctx.lineTo(points[0].x, points[0].y);
+                }
             } else {
                 ctx.lineTo(points[i].x, points[i].y);
             }
-        }
+        }        
 
         ctx.stroke();
 
         for(var i = 0; i < points.length; i++) {
-            ctx.beginPath();
-            ctx.arc(points[i].x, points[i].y, 5, 0, Math.PI * 2);
-            ctx.fill();
+            if (areaIndex == index) {
+                ctx.beginPath();
+                ctx.arc(points[i].x, points[i].y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         if (points.length > 2) {
@@ -492,8 +503,6 @@ function drawEditPath(points, index){
                 midY = (maxY + minY) / 2;
             }
 
-            // console.log('maxX = ', maxX, 'maxY = ', maxY, 'minX = ', minX, 'minY = ', minY, 'midX = ', midX, 'midY = ', midY);
-
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.font = '20px serif';
@@ -502,7 +511,7 @@ function drawEditPath(points, index){
         }
     } else if (points.length == 1) {
         ctx.beginPath();
-        ctx.arc(points[0].x, points[0].y, 5, 0, Math.PI * 2);
+        ctx.arc(points[0].x, points[0].y, 3, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -534,11 +543,11 @@ function drawMonitorPath(path, index){
 
         ctx.stroke();
 
-        for(var i = 0; i < path.path.length; i++) {
-            ctx.beginPath();
-            ctx.arc(path.path[i].x, path.path[i].y, 5, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // for(var i = 0; i < path.path.length; i++) {
+        //     ctx.beginPath();
+        //     ctx.arc(path.path[i].x, path.path[i].y, 3, 0, Math.PI * 2);
+        //     ctx.fill();
+        // }
 
         if (path.path.length > 2) {
             var maxX = Number.MIN_SAFE_INTEGER;
@@ -576,24 +585,35 @@ function drawMonitorPath(path, index){
         }
     } else if (path.path.length == 1) {
         ctx.beginPath();
-        ctx.arc(path.path[0].x, path.path[0].y, 5, 0, Math.PI * 2);
+        ctx.arc(path.path[0].x, path.path[0].y, 3, 0, Math.PI * 2);
         ctx.fill();
     }
 }
 
 /**
  * MODE_EDITOR 데이터 반환
- * @returns 
+ * @returns {JSONstring} MODE_EDITOR 데이터
  */
 function getAreas(){
-    var value = JSON.stringify(editAreas.slice());
+    // 배열의 깊은 복사
+    var temp = JSON.stringify(editAreas.slice());
+    var value = JSON.parse(temp);
 
-    return value;
+    // 점 3개 미만은 좌표 삭제
+    for (var i = 0; i < value.length; i++) {
+        if (value[i].path.length < 3) {
+            value[i].path = new Array();
+        }
+    }
+
+    console.log('value', value);
+
+    return JSON.stringify(value);
 }
 
 /**
  * MODE_EDITOR 데이터 대입
- * @param {*} dataString 
+ * @param {JSONstring} dataString 
  */
 function setEditAreas(dataString){
     editAreas = JSON.parse(dataString).areas;
@@ -627,20 +647,74 @@ function setMonitorAreas(dataString){
 
 /**
  * 캡쳐이미지 표시
- * @param {*} src 
+ * @param {url} src 
  */
 function setCapturedImage(src){
+    scale = 1;
+    changePreviewSize();
+
     captureImg.src = src;
+
+    // var xmlHTTP = new XMLHttpRequest();
+    // xmlHTTP.open('get', src, true);
+    // xmlHTTP.responseType = 'arraybuffer';
+    // xmlHTTP.onload = function (e) {
+    //     if (this.status == 200) {
+    //         var blob = new Blob([xmlHTTP.response], {type: 'image/jpeg'});
+    //         var dataURL;
+
+    //         if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+    //             dataURL = URL.createObjectURL(blob);
+    //         } else {
+    //             dataURL = (window.URL || window.webkitURL).createObjectURL(blob);
+    //         }
+            
+    //         captureImg.src = dataURL;
+
+    //         setTimeout(() => {
+    //             console.log('setTimeout()');
+    //             scale = scale - 0.1;
+    //             changePreviewSize();
+    //             scale = scale + 0.1;
+    //             changePreviewSize();
+    //         }, 100);
+    //     }
+    // };
+
+    // xmlHTTP.send();
 }
 
 /**
  * 특정 인덱스의 MODE_MONITOR 데이터 대입
- * @param {*} index 
- * @param {*} area 
+ * @param {number} index 
+ * @param {*} area
  */
 function setMonitorData(index, area) {
     if (index >= 0 && index < monitorAreas.length){
         monitorAreas[index] = area;
+    }
+}
+
+/**
+ * 특정 인덱스의 MODE_MONITOR 데이터 색상 대입
+ * @param {number} index 
+ * @param {*} color 색상 hex 또는 html color 이름
+ */
+ function setAreaColor(index, color) {
+    if (index >= 0 && index < monitorAreas.length){
+        monitorAreas[index].color = color;
+    }
+}
+
+/**
+ * MODE_MONITOR 데이터 value 대입
+ * @param {number[]} value 
+ */
+ function setValues(value) {
+    if (value.length == monitorAreas.length){
+        for (var i = 0; i < value.length; i++) {
+            monitorAreas[i].value = value[i];
+        }
     }
 }
 
@@ -657,11 +731,35 @@ function sendTestData(){
 }
 
 /**
- * MODE_MONITOR 상태에서 test 버튼 누를 경우 5번 영역 데이터의 색상이 변경되도록 하는 테스터
+ * MODE_MONITOR 상태에서 test 버튼 누를 경우 5번 영역 데이터의 정보가 변경되도록 하는 테스터
  */
 function inputMonitorTestData() {
     var area = '{"color":"red", "value":30, "path":[{"x":322,"y":454},{"x":311,"y":534},{"x":362,"y":624},{"x":437,"y":688},{"x":256,"y":697},{"x":193,"y":500}]}';
     setMonitorData(4, JSON.parse(area));
+
+    console.log('monitorAreas', monitorAreas);
+
+    drawArea();
+}
+
+/**
+ * MODE_MONITOR 상태에서 test 버튼 누를 경우 value값이 일괄 변경되도록 하는 테스터
+ */
+ function valueTestData() {
+    var value = '[24, 10, 23, 41, 543]';
+    setValues(JSON.parse(value));
+
+    console.log('value', value);
+
+    drawArea();
+}
+
+/**
+ * MODE_MONITOR 상태에서 test 버튼 누를 경우 5번 영역 데이터의 색상만이 변경되도록 하는 테스터
+ */
+ function colorTestData() {
+    var color = 'deeppink';
+    setAreaColor(4, color);
 
     console.log('monitorAreas', monitorAreas);
 
