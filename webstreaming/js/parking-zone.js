@@ -2,16 +2,18 @@ const MODE_EDITOR = 0;
 const MODE_MONITOR = 1;
 const CAPTURE_IMG_URL = 'http://115.94.37.213:8080/video/capture?mode=0&rand=';
 // const CAPTURE_IMG_URL = 'images/test_img.jpg';
+const ZOOM_OUT_MIN = 1;
+const ZOOM_IN_MAX = 4;
 
+var pzCanvasSizeRatio = 1;//에디팅 영역과 Canvas 크기의 비율
 var editAreas = new Array();//Edit Mode 영역 데이터
 var monitorAreas = new Array();//Monitor Mode 영역 데이터
-var scale = 1;//확대/축소 시 스케일 펙터
+var scale = ZOOM_OUT_MIN;//확대/축소 시 스케일 펙터
 var areaIndex = -1;//현재 선택된 영역 인덱스
 var areaSelector = new Array();//데이터 없는 영역 버튼 유동적 생성정보 배열
 var currentMode = MODE_EDITOR;//현재 화면 모드
 
 var isMoved = false;//드래그 동작 체커
-//var isClosed = false;
 
 let pos = { top: 0, left: 0, x: 0, y: 0 };
 
@@ -51,6 +53,14 @@ function init(){
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
     
+    pzCanvasSizeRatio = canvas.offsetWidth / parkingZone.offsetWidth;
+
+    console.log('pzCanvasSizeRatio = ', pzCanvasSizeRatio);
+
+    // canvas 크기를 편집창 사이즈에 맞춰 조정
+    canvas.style.width = parkingZone.offsetWidth + 'px';
+    canvas.style.height = parkingZone.offsetHeight + 'px';
+    
     ctrlPannel = document.getElementById('control-pannel');
     areaSelect = document.getElementById('area-select');
     
@@ -80,7 +90,6 @@ function init(){
     btnAllClear.addEventListener('click', btnAllClearOnClick, false);
     
     btnLoadImgFile.addEventListener('click', openImgFile, false);
-    // btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL)}, false);
     btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
     btnModeToggle.addEventListener('click', changeMode, false);
     btnTest.addEventListener('click', getAreas, false);
@@ -90,7 +99,6 @@ function init(){
     ctrlPannel.style.top = parkingZone.offsetTop + 'px';
     ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
     
-    // setCapturedImage(CAPTURE_IMG_URL);
     setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
 }
 
@@ -106,7 +114,6 @@ function changeMode(){
 
             captureImg.style.display = 'none';
             ctrlPannel.style.display = 'none';
-            //canvas.style.display = 'none';
 
             btnLoadImgFile.disabled = true;
             btnLoadCaptureImg.disabled = true;
@@ -126,7 +133,6 @@ function changeMode(){
 
             captureImg.style.display = 'block';
             ctrlPannel.style.display = 'block';
-            //canvas.style.display = 'block';
 
             btnLoadImgFile.disabled = false;
             btnLoadCaptureImg.disabled = false;
@@ -204,8 +210,8 @@ function wheelScrollHandler(event) {
 
         scale -= scale * event.deltaY * 0.001;
 
-        if (scale > 4) scale = 4;
-        else if (scale < 1) scale = 1;
+        if (scale > ZOOM_IN_MAX) scale = ZOOM_IN_MAX;
+        else if (scale < ZOOM_OUT_MIN) scale = ZOOM_OUT_MIN;
 
         changePreviewSize();
     }
@@ -217,8 +223,8 @@ function wheelScrollHandler(event) {
 function btnZoomInOnClick() {
     scale++;
 
-    if (scale > 4) {
-        scale = 4;
+    if (scale > ZOOM_IN_MAX) {
+        scale = ZOOM_IN_MAX;
     }
 
     changePreviewSize();
@@ -230,8 +236,8 @@ function btnZoomInOnClick() {
 function btnZoomOutOnClick() {
     scale--;
 
-    if (scale < 1) {
-        scale = 1;            
+    if (scale < ZOOM_OUT_MIN) {
+        scale = ZOOM_OUT_MIN;            
     }
 
     changePreviewSize();
@@ -258,7 +264,7 @@ function btnBackOnClick() {
 /**
  * btnEnter 클릭시 컨트롤
  */
- function btnEnterOnClick() {
+function btnEnterOnClick() {
     areaIndex = -1;
 
     selectArea();
@@ -297,7 +303,7 @@ function btnAllClearOnClick() {
 /**
  * 데이터 없는 영역 버튼 유동적 생성
  */
- function selectArea(){
+function selectArea(){
     for (var i = 0; i < areaSelector.length; i++) {
         areaSelector[i].removeEventListener('click', areaSelectorClicked, false);
         areaSelect.removeChild(areaSelector[i]);
@@ -349,9 +355,6 @@ function changePreviewSize() {
 
     console.log('before scrollLeft = ' + scrollLeft + '   scrollTop = ' + scrollTop + '   scale = ' + scale);
 
-    // var offsetX = (captureImg.offsetWidth - clientWidth) / 2 - scrollLeft;
-    // var offsetY = (captureImg.offsetHeight - clientHeight) / 2 - scrollTop;
-
     var offsetX;
     var offsetY;
 
@@ -372,9 +375,6 @@ function changePreviewSize() {
     canvas.style.width = width * scale + 'px';
     canvas.style.height = height * scale + 'px';
 
-    // parkingZone.scrollLeft = (captureImg.offsetWidth - clientWidth) / 2 - offsetX;
-    // parkingZone.scrollTop = (captureImg.offsetHeight - clientHeight) / 2 - offsetY;
-
     if (currentMode == MODE_EDITOR) {
         parkingZone.scrollLeft = (captureImg.offsetWidth - clientWidth) / 2 - offsetX;
         parkingZone.scrollTop = (captureImg.offsetHeight - clientHeight) / 2 - offsetY;
@@ -385,6 +385,8 @@ function changePreviewSize() {
 
     console.log('offsetX = ' + offsetX);
     console.log('after scrollLeft = ' + parkingZone.scrollLeft + '   scrollTop = ' + parkingZone.scrollTop);
+
+    drawArea();
 }
 
 /**
@@ -402,13 +404,13 @@ function getClickPosition(event) {
                 editAreas.push({path: new Array()});
                 areaIndex = editAreas.length - 1;               
 
-                editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale), y: Math.round(event.layerY / scale)});
+                editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale * pzCanvasSizeRatio), y: Math.round(event.layerY / scale * pzCanvasSizeRatio)});
             }
         } else {
             if (selectedAreaIndex > -1 && areaIndex != selectedAreaIndex){
                 areaIndex = selectedAreaIndex;
             } else {
-                editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale), y: Math.round(event.layerY / scale)});
+                editAreas[areaIndex].path.push({x: Math.round(event.layerX / scale * pzCanvasSizeRatio), y: Math.round(event.layerY / scale * pzCanvasSizeRatio)});
             }
         }
 
@@ -427,15 +429,17 @@ function getClickPosition(event) {
 function drawArea() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    ctx.lineWidth = pzCanvasSizeRatio / scale;
+
     if (currentMode == MODE_EDITOR) {
         for (var i = 0; i < editAreas.length; i++){
             if (i == areaIndex) {
                 ctx.strokeStyle = 'red';
-                ctx.fillStyle = 'red';
+                ctx.fillStyle = 'red';               
             } else {
                 ctx.strokeStyle = 'yellow';
                 ctx.fillStyle = 'yellow';
-            }
+            }            
     
             drawEditPath(editAreas[i].path, i);
         }
@@ -455,6 +459,8 @@ function drawArea() {
 function drawEditPath(points, index){
     console.log('index', index, 'points', points);
 
+    var radius = pzCanvasSizeRatio * 3 / scale;
+
     if (points.length > 1) {
         ctx.beginPath();
 
@@ -470,14 +476,14 @@ function drawEditPath(points, index){
             } else {
                 ctx.lineTo(points[i].x, points[i].y);
             }
-        }        
+        }
 
         ctx.stroke();
 
         for(var i = 0; i < points.length; i++) {
             if (areaIndex == index) {
                 ctx.beginPath();
-                ctx.arc(points[i].x, points[i].y, 3, 0, Math.PI * 2);
+                ctx.arc(points[i].x, points[i].y, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -503,15 +509,17 @@ function drawEditPath(points, index){
                 midY = (maxY + minY) / 2;
             }
 
+            var fontSize = 16 * pzCanvasSizeRatio / scale;
+
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = '20px serif';
+            ctx.font = fontSize + 'px serif';
             ctx.fillText(index + 1, midX, midY);
             ctx.strokeText(index + 1, midX, midY);
         }
     } else if (points.length == 1) {
         ctx.beginPath();
-        ctx.arc(points[0].x, points[0].y, 3, 0, Math.PI * 2);
+        ctx.arc(points[0].x, points[0].y, radius, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -523,6 +531,8 @@ function drawEditPath(points, index){
  */
 function drawMonitorPath(path, index){
     console.log('index', index, 'Monitor path', path);
+
+    var radius = pzCanvasSizeRatio * 3 / scale;
 
     ctx.strokeStyle = path.color;
     ctx.fillStyle = path.color;
@@ -542,12 +552,6 @@ function drawMonitorPath(path, index){
         }
 
         ctx.stroke();
-
-        // for(var i = 0; i < path.path.length; i++) {
-        //     ctx.beginPath();
-        //     ctx.arc(path.path[i].x, path.path[i].y, 3, 0, Math.PI * 2);
-        //     ctx.fill();
-        // }
 
         if (path.path.length > 2) {
             var maxX = Number.MIN_SAFE_INTEGER;
@@ -570,11 +574,11 @@ function drawMonitorPath(path, index){
                 midY = (maxY + minY) / 2;
             }
 
-            // console.log('maxX = ', maxX, 'maxY = ', maxY, 'minX = ', minX, 'minY = ', minY, 'midX = ', midX, 'midY = ', midY);
+            var fontSize = 14 * pzCanvasSizeRatio / scale;
 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.font = '16px serif';
+            ctx.font = fontSize + 'px serif';
 
             var lineHeight = ctx.measureText('M').width;
 
@@ -585,7 +589,7 @@ function drawMonitorPath(path, index){
         }
     } else if (path.path.length == 1) {
         ctx.beginPath();
-        ctx.arc(path.path[0].x, path.path[0].y, 3, 0, Math.PI * 2);
+        ctx.arc(path.path[0].x, path.path[0].y, radius, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -637,51 +641,15 @@ function setMonitorAreas(dataString){
     drawArea();
 }
 
-// function getCurrentArea(){
-//     return areaIndex;
-// }
-
-// function setCurrentArea(index){
-//     areaIndex = index;
-// }
-
 /**
  * 캡쳐이미지 표시
  * @param {url} src 
  */
 function setCapturedImage(src){
-    scale = 1;
+    scale = ZOOM_OUT_MIN;
     changePreviewSize();
 
     captureImg.src = src;
-
-    // var xmlHTTP = new XMLHttpRequest();
-    // xmlHTTP.open('get', src, true);
-    // xmlHTTP.responseType = 'arraybuffer';
-    // xmlHTTP.onload = function (e) {
-    //     if (this.status == 200) {
-    //         var blob = new Blob([xmlHTTP.response], {type: 'image/jpeg'});
-    //         var dataURL;
-
-    //         if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-    //             dataURL = URL.createObjectURL(blob);
-    //         } else {
-    //             dataURL = (window.URL || window.webkitURL).createObjectURL(blob);
-    //         }
-            
-    //         captureImg.src = dataURL;
-
-    //         setTimeout(() => {
-    //             console.log('setTimeout()');
-    //             scale = scale - 0.1;
-    //             changePreviewSize();
-    //             scale = scale + 0.1;
-    //             changePreviewSize();
-    //         }, 100);
-    //     }
-    // };
-
-    // xmlHTTP.send();
 }
 
 /**
@@ -722,11 +690,11 @@ function setMonitorData(index, area) {
  * 테스트용 데이터 String 현재 MODE_MONITOR 진입시 자동 적용되어 화면에 표시됨
  */
 function sendTestData(){
-    dataString = '{"areas":[{"color":"red", "value":30, "path":[{"x":201,"y":141},{"x":505,"y":149},{"x":501,"y":341},{"x":206,"y":361}]},' 
+    dataString = '{"areas":[{"color":"red", "value":30, "path":[{"x":201,"y":141},{"x":505,"y":149},{"x":701,"y":601},{"x":206,"y":361}]},' 
     + '{"color":"blue", "value":20, "path":[{"x":611,"y":67},{"x":804,"y":63},{"x":763,"y":180},{"x":620,"y":202}]},'
-    + '{"color":"#ff00ff", "value":10, "path":[{"x":698,"y":302},{"x":874,"y":247},{"x":881,"y":379},{"x":707,"y":416}]},' 
+    + '{"color":"#ff00ff", "value":10, "path":[{"x":698,"y":302},{"x":874,"y":247},{"x":2881,"y":379},{"x":707,"y":416}]},' 
     + '{"color":"#00ff00", "value":25, "path":[{"x":815,"y":557},{"x":771,"y":638},{"x":852,"y":713},{"x":858,"y":680},{"x":837,"y":581}]},' 
-    + '{"color":"#00ffff", "value":32, "path":[{"x":322,"y":454},{"x":311,"y":534},{"x":362,"y":624},{"x":437,"y":688},{"x":256,"y":697},{"x":193,"y":500}]}]}';
+    + '{"color":"#00ffff", "value":32, "path":[{"x":322,"y":454},{"x":311,"y":534},{"x":362,"y":624},{"x":437,"y":688},{"x":256,"y":2697},{"x":193,"y":500}]}]}';
     setMonitorAreas(dataString);
 }
 
@@ -806,7 +774,7 @@ function getSelectedAreaIndex(event){
     var result = -1;
 
     for (var i = 0; i < editAreas.length; i++){
-        if (checkIsInsidePoint(editAreas[i].path, Math.round(event.layerX / scale), Math.round(event.layerY / scale))) {
+        if (checkIsInsidePoint(editAreas[i].path, Math.round(event.layerX / scale * pzCanvasSizeRatio), Math.round(event.layerY / scale * pzCanvasSizeRatio))) {
             result = i;
             break;
         }
