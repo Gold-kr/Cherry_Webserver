@@ -14,9 +14,20 @@ body {
 
 .zone {
     position: relative;
-    width: 752px;
-    height: 752px;
     background-color:black;
+}
+
+/**
+- 각 canvas의 가로 세로 사이즈는 실 화면 사이즈로 설정
+- canvas의 사이즈는 html에서 attribute width 및 height 값을 이용하여 설정할 것
+- canvas 이외의 뷰 사이즈는 css에서 (canvas 사이즈 / 4)로 설정
+- 예 : 실화면 사이즈 4000 : 3000
+  canvas 사이즈 -> 4000 : 3000
+  기타 뷰 사이즈 -> 1000 : 750
+*/
+.screen-size {
+    width: 1000px;
+    height: 750px;
 }
 
 .absolute {

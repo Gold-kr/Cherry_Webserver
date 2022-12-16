@@ -11,10 +11,11 @@
 </head>
 <body>
     <div style="position: relative; margin-left: 50px;">
-        <div style="width: 752px; border: 1px solid darkgray;">
-            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
-                <img id="capture-img" class="absolute" width="752" height="752">
-                <canvas id="canvas-editor" class="absolute" width="3008" height="3008"></canvas>
+        <div class="zone screen-size" style="border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone screen-size" style="overflow: auto;">
+                <img id="capture-img" class="absolute screen-size">
+
+                <canvas id="canvas-editor" class="absolute" width="4000" height="3000"></canvas>
             </div>
         </div>
 
@@ -64,18 +65,12 @@
     /**
      * 각종 html Element 초기화 및 바인딩
      */
-    function init(){
+    function init() {
+        // 각종 View 바인딩
         parkingZone = document.getElementById('parking-zone');
-
         captureImg = document.getElementById('capture-img');
         canvasEditor = document.getElementById('canvas-editor');
         ctxEditor = canvasEditor.getContext('2d');
-        
-        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
-
-        // canvas 크기를 편집창 사이즈에 맞춰 조정
-        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
-        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
         
         ctrlPannel = document.getElementById('control-pannel');
         areaSelect = document.getElementById('area-select');
@@ -91,13 +86,28 @@
         btnLoadCaptureImg = document.getElementById('btn-load-capture-img');
         btnModeToggle = document.getElementById('btn-mode-toggle');
         btnTest = document.getElementById('btn-test');
+
+        // 캔버스의 크기와 뷰 영역의 크기 비율값 산출
+        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
+
+        // canvas 크기를 편집창 사이즈에 맞춰 조정
+        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
+        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
+
+        // 컨트롤 패널의 위치 지정
+        ctrlPannel.style.top = parkingZone.offsetTop + 'px';
+        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
         
+        // 각종 이벤트 리스너 등록
+        // 스크린 영역
         parkingZone.addEventListener('wheel', editorModeWheelScrollHandler, false);
         parkingZone.addEventListener('mousedown', mouseDownHandler, false);
         captureImg.addEventListener('load', () => {
             // 이미지 로드 완료 이벤트 리스너        
         }, false);
         canvasEditor.addEventListener('click', getClickPosition, false);
+
+        // 컨트롤 패널 영역
         btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
         btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
         btnBack.addEventListener('click', btnBackOnClick, false);
@@ -105,13 +115,11 @@
         btnClear.addEventListener('click', btnClearOnClick, false);
         btnAllClear.addEventListener('click', btnAllClearOnClick, false);
         
+        // 하단부 버튼
         btnLoadImgFile.addEventListener('click', openImgFile, false);
         btnLoadCaptureImg.addEventListener('click', () => {
             setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
         btnTest.addEventListener('click', getAreas, false);
-
-        ctrlPannel.style.top = parkingZone.offsetTop + 'px';
-        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
         
         setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
     }

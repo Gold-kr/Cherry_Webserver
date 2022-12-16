@@ -11,12 +11,13 @@
 </head>
 <body>
     <div style="margin-left: 50px;">
-        <div style="width: 752px; border: 1px solid darkgray;">
-            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
-                <video is="qdis-player" class="absolute" id="qdis-player" width="752" height="752" controls autoplay muted="muted">
+        <div class="zone screen-size" style="border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone screen-size" style="overflow: auto;">
+                <video is="qdis-player" class="absolute screen-size" id="qdis-player" controls autoplay muted="muted">
                     해당 브라우저는 스트리밍을 지원하지 않습니다.
-                </video>    
-                <canvas id="canvas-monitor" class="absolute" width="3008" height="3008"></canvas>
+                </video>
+
+                <canvas id="canvas-monitor" class="absolute" width="4000" height="3000"></canvas>
             </div>
         </div>
     </div>
@@ -36,17 +37,21 @@
      * 각종 html Element 초기화 및 바인딩
      */
     function init(){
+        // 각종 View 바인딩
         parkingZone = document.getElementById('parking-zone');
         qdisPlayer = document.getElementById('qdis-player');
         canvasMonitor = document.getElementById('canvas-monitor');
         ctxMonitor = canvasMonitor.getContext('2d');
         
+        // 캔버스의 크기와 뷰 영역의 크기 비율값 산출
         pzCanvasSizeRatio = canvasMonitor.offsetWidth / parkingZone.offsetWidth;
 
         // canvas 크기를 편집창 사이즈에 맞춰 조정
         canvasMonitor.style.width = parkingZone.offsetWidth + 'px';
         canvasMonitor.style.height = parkingZone.offsetHeight + 'px';
-                
+        
+        // 각종 이벤트 리스너 등록
+        // 스크린 영역
         parkingZone.addEventListener('wheel', monitorModeWheelScrollHandler, false);
         parkingZone.addEventListener('mousedown', mouseDownHandler, false);
 

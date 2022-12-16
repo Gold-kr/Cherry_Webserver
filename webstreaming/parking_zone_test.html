@@ -12,15 +12,15 @@
 </head>
 <body>
     <div style="position: relative; margin-left: 50px;">
-        <div style="width: 752px; border: 1px solid darkgray;">
-            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
-                <video is="qdis-player" class="absolute" id="qdis-player" width="752" height="752" controls autoplay muted="muted">
+        <div class="zone screen-size" style="border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone screen-size" style="overflow: auto;">
+                <video is="qdis-player" class="absolute screen-size" id="qdis-player" controls autoplay muted="muted">
                     해당 브라우저는 스트리밍을 지원하지 않습니다.
-                </video>
-    
-                <img id="capture-img" class="absolute" width="752" height="752">
-                <canvas id="canvas-editor" class="absolute" width="3008" height="3008"></canvas>
-                <canvas id="canvas-monitor" class="absolute" width="3008" height="3008"></canvas>
+                </video>    
+                <img id="capture-img" class="absolute screen-size">
+
+                <canvas id="canvas-editor" class="absolute" width="4000" height="3000"></canvas>
+                <canvas id="canvas-monitor" class="absolute" width="4000" height="3000"></canvas>
             </div>
         </div>        
 
@@ -81,7 +81,8 @@
     /**
      * 각종 html Element 초기화 및 바인딩
      */
-    function init(){
+    function init() {
+        // 각종 View 바인딩
         parkingZone = document.getElementById('parking-zone');
         qdisPlayer = document.getElementById('qdis-player');
         captureImg = document.getElementById('capture-img');
@@ -89,15 +90,6 @@
         canvasMonitor = document.getElementById('canvas-monitor');
         ctxEditor = canvasEditor.getContext('2d');
         ctxMonitor = canvasMonitor.getContext('2d');
-        
-        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
-
-        // canvas 크기를 편집창 사이즈에 맞춰 조정
-        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
-        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
-
-        canvasMonitor.style.width = parkingZone.offsetWidth + 'px';
-        canvasMonitor.style.height = parkingZone.offsetHeight + 'px';
         
         ctrlPannel = document.getElementById('control-pannel');
         areaSelect = document.getElementById('area-select');
@@ -113,12 +105,30 @@
         btnLoadCaptureImg = document.getElementById('btn-load-capture-img');
         btnModeToggle = document.getElementById('btn-mode-toggle');
         btnTest = document.getElementById('btn-test');
-        
+
+        // 캔버스의 크기와 뷰 영역의 크기 비율값 산출
+        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
+
+        // canvas 크기를 편집창 사이즈에 맞춰 조정
+        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
+        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
+
+        canvasMonitor.style.width = parkingZone.offsetWidth + 'px';
+        canvasMonitor.style.height = parkingZone.offsetHeight + 'px';
+
+        // 컨트롤 패널의 위치 지정
+        ctrlPannel.style.top = parkingZone.offsetTop + 'px';
+        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
+
+        // 각종 이벤트 리스너 등록
+        // 스크린 영역
         parkingZone.addEventListener('mousedown', mouseDownHandler, false);
         captureImg.addEventListener('load', () => {
             // 이미지 로드 완료 이벤트 리스너        
         }, false);
         canvasEditor.addEventListener('click', getClickPosition, false);
+
+        // 컨트롤 패널 영역
         btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
         btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
         btnBack.addEventListener('click', btnBackOnClick, false);
@@ -126,22 +136,25 @@
         btnClear.addEventListener('click', btnClearOnClick, false);
         btnAllClear.addEventListener('click', btnAllClearOnClick, false);
         
+        // 하단부 버튼
         btnLoadImgFile.addEventListener('click', openImgFile, false);
         btnLoadCaptureImg.addEventListener('click', () => {
             setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
         btnModeToggle.addEventListener('click', changeMode, false);
         btnTest.addEventListener('click', getAreas, false);
 
-        ctrlPannel.style.top = parkingZone.offsetTop + 'px';
-        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
-
+        // EditMode로 초기 실행시 코드
         setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
         setEditMode()
 
+        // MonitorMode로 초기 실행시 코드
         // setMonitorMode()
     }
 
-    function changeMode(){
+    /**
+     * 모드 변경 토글 함수
+     */
+    function changeMode() {
         switch (currentMode) {
             case MODE_EDITOR:
                 setMonitorMode()
@@ -154,51 +167,87 @@
         console.log('currentMode = ', currentMode);
     }
 
-    function setEditMode(){
-        if (wsPlayer) {
-            wsPlayer.stop();
-        }
+    /**
+     * EditMode로 전환
+     */
+    function setEditMode() {
+        disableMonitorMode();
+        enableEditMode();
 
+        btnModeToggle.innerText = 'Monitor Mode';
+        currentMode = MODE_EDITOR;
+    }
+
+    /**
+     * MonitorMode로 전환
+     */
+    function setMonitorMode() {
+        disableEditMode();
+        enableMonitorMode();
+
+        btnModeToggle.innerText = 'Editor Mode';
+        currentMode = MODE_MONITOR;
+    }
+
+    /**
+     * EditMode 활성화
+     */
+    function enableEditMode() {
         captureImg.style.display = 'block';
         canvasEditor.style.display = 'block';
         ctrlPannel.style.display = 'block';
 
-        qdisPlayer.style.display = 'none';
-        canvasMonitor.style.display = 'none';
-        
         btnLoadImgFile.disabled = false;
         btnLoadCaptureImg.disabled = false;
-        btnModeToggle.innerText = 'Monitor Mode';
 
         parkingZone.addEventListener('wheel', editorModeWheelScrollHandler, false);
-        parkingZone.removeEventListener('wheel', monitorModeWheelScrollHandler, false);
 
-        currentMode = MODE_EDITOR;
-        setEditorModeDefaultScale()
+        setEditorModeDefaultScale();
     }
 
-    function setMonitorMode(){
-        setPlayerSource('rtsp://' + hostName + '/' + channel);
-
+    /**
+     * EditMode 비활성화
+     */
+    function disableEditMode() {
         captureImg.style.display = 'none';
         canvasEditor.style.display = 'none';
         ctrlPannel.style.display = 'none';
+
+        parkingZone.removeEventListener('wheel', editorModeWheelScrollHandler, false);
+    }
+
+    /**
+     * MonitorMode 활성화
+     */
+    function enableMonitorMode() {
+        setPlayerSource('rtsp://' + hostName + '/' + channel);
 
         qdisPlayer.style.display = 'block';
         canvasMonitor.style.display = 'block';
 
         btnLoadImgFile.disabled = true;
         btnLoadCaptureImg.disabled = true;
-        btnModeToggle.innerText = 'Editor Mode';
 
-        parkingZone.removeEventListener('wheel', editorModeWheelScrollHandler, false);
         parkingZone.addEventListener('wheel', monitorModeWheelScrollHandler, false);
-
-        currentMode = MODE_MONITOR;
-        setMonitorModeDefaultScale()
 
         // Monitor 데이터 수신부 적용 필요
         sendTestData();
+
+        setMonitorModeDefaultScale();
+    }
+
+    /**
+     * MonitorMode  비활성화
+     */
+    function disableMonitorMode() {
+        if (wsPlayer) {
+            wsPlayer.stop();
+        }
+
+        qdisPlayer.style.display = 'none';
+        canvasMonitor.style.display = 'none';
+
+        parkingZone.removeEventListener('wheel', monitorModeWheelScrollHandler, false);
     }
 </script>
 </html>
