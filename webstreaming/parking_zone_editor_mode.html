@@ -6,17 +6,16 @@
     <title>QdisPlayer RTSP player example</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="js/player.js"></script>
-    <script src="js/parking-zone.js"></script>
+    <script src="js/parking-zone-common.js"></script>
+    <script src="js/parking-zone-editor-mode.js"></script>
 </head>
 <body>
     <div style="position: relative; margin-left: 50px;">
-        <div id="parking-zone" class="zone" width="1000" height="750" style="overflow: scroll;">
-            <video is="qdis-player" class="absolute" id="qdis-player" width="1000" height="750" controls autoplay muted="muted">
-                해당 브라우저는 스트리밍을 지원하지 않습니다.
-            </video>
-
-            <img id="capture-img" class="absolute" width="1000" height="750">
-            <canvas id="canvas" class="absolute" width="4000" height="3000"></canvas>
+        <div style="width: 752px; border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
+                <img id="capture-img" class="absolute" width="752" height="752">
+                <canvas id="canvas-editor" class="absolute" width="3008" height="3008"></canvas>
+            </div>
         </div>
 
         <div>
@@ -34,16 +33,14 @@
 
         <button id="btn-load-img-file" style="width: 130px;">Load Img File</button>
         <button id="btn-load-capture-img" style="width: 130px;">Load Capture Img</button>
-        <button id="btn-mode-toggle" style="width: 130px;">Monitor Mode</button>
         <button id="btn-test">test</button>
     </div>
 </body>
 <script>
     var parkingZone;//영상 영역 <div>
-    var qdisPlayer;//소켓 스트리밍 플레이어
     var captureImg;//캡쳐이미지 표시 <img>
-    var canvas;//영역 표시 <canvas>
-    var ctx;//canvas Context
+    var canvasEditor;//영역 표시 <canvas>
+    var ctxEditor;//canvas Context
 
     var ctrlPannel;//우상단 컨트롤 패널
     var areaSelect;//데이터 없는 영역 유동 버튼 배치 <div>
@@ -62,7 +59,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
         init();
-        processFn();
     });
 
     /**
@@ -70,18 +66,16 @@
      */
     function init(){
         parkingZone = document.getElementById('parking-zone');
-        qdisPlayer = document.getElementById('qdis-player');
-        captureImg = document.getElementById('capture-img');
-        canvas = document.getElementById('canvas');
-        ctx = canvas.getContext('2d');
-        
-        pzCanvasSizeRatio = canvas.offsetWidth / parkingZone.offsetWidth;
 
-        console.log('pzCanvasSizeRatio =', pzCanvasSizeRatio, 'canvas.offsetWidth =', canvas.offsetWidth, 'parkingZone.offsetWidth =', parkingZone.offsetWidth);
+        captureImg = document.getElementById('capture-img');
+        canvasEditor = document.getElementById('canvas-editor');
+        ctxEditor = canvasEditor.getContext('2d');
+        
+        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
 
         // canvas 크기를 편집창 사이즈에 맞춰 조정
-        canvas.style.width = parkingZone.offsetWidth + 'px';
-        canvas.style.height = parkingZone.offsetHeight + 'px';
+        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
+        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
         
         ctrlPannel = document.getElementById('control-pannel');
         areaSelect = document.getElementById('area-select');
@@ -98,12 +92,12 @@
         btnModeToggle = document.getElementById('btn-mode-toggle');
         btnTest = document.getElementById('btn-test');
         
-        parkingZone.addEventListener('wheel', wheelScrollHandler, false);
+        parkingZone.addEventListener('wheel', editorModeWheelScrollHandler, false);
         parkingZone.addEventListener('mousedown', mouseDownHandler, false);
         captureImg.addEventListener('load', () => {
             // 이미지 로드 완료 이벤트 리스너        
         }, false);
-        canvas.addEventListener('click', getClickPosition, false);
+        canvasEditor.addEventListener('click', getClickPosition, false);
         btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
         btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
         btnBack.addEventListener('click', btnBackOnClick, false);
@@ -112,14 +106,12 @@
         btnAllClear.addEventListener('click', btnAllClearOnClick, false);
         
         btnLoadImgFile.addEventListener('click', openImgFile, false);
-        btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
-        btnModeToggle.addEventListener('click', changeMode, false);
+        btnLoadCaptureImg.addEventListener('click', () => {
+            setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
         btnTest.addEventListener('click', getAreas, false);
 
-        qdisPlayer.style.display = 'none';
-
         ctrlPannel.style.top = parkingZone.offsetTop + 'px';
-        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
+        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
         
         setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
     }

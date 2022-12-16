@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>QdisPlayer RTSP player example</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/player.js"></script>
+    <script src="js/parking-zone-common.js"></script>
+    <script src="js/parking-zone-monitor-mode.js"></script>
+</head>
+<body>
+    <div style="margin-left: 50px;">
+        <div style="width: 752px; border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
+                <video is="qdis-player" class="absolute" id="qdis-player" width="752" height="752" controls autoplay muted="muted">
+                    해당 브라우저는 스트리밍을 지원하지 않습니다.
+                </video>    
+                <canvas id="canvas-monitor" class="absolute" width="3008" height="3008"></canvas>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    var parkingZone;//영상 영역 <div>
+    var qdisPlayer;//소켓 스트리밍 플레이어
+    var canvasMonitor;//영역 표시 <canvas>
+    var ctxMonitor;//canvas Context
+
+    window.addEventListener('DOMContentLoaded', () => {
+        processFn();
+        init();
+    });
+
+    /**
+     * 각종 html Element 초기화 및 바인딩
+     */
+    function init(){
+        parkingZone = document.getElementById('parking-zone');
+        qdisPlayer = document.getElementById('qdis-player');
+        canvasMonitor = document.getElementById('canvas-monitor');
+        ctxMonitor = canvasMonitor.getContext('2d');
+        
+        pzCanvasSizeRatio = canvasMonitor.offsetWidth / parkingZone.offsetWidth;
+
+        // canvas 크기를 편집창 사이즈에 맞춰 조정
+        canvasMonitor.style.width = parkingZone.offsetWidth + 'px';
+        canvasMonitor.style.height = parkingZone.offsetHeight + 'px';
+                
+        parkingZone.addEventListener('wheel', monitorModeWheelScrollHandler, false);
+        parkingZone.addEventListener('mousedown', mouseDownHandler, false);
+
+        setPlayerSource('rtsp://' + hostName + '/' + channel);
+
+        // Monitor 데이터 수신부 적용 필요
+        sendTestData();
+    }
+</script>
+</html>

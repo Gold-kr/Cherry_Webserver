@@ -6,18 +6,23 @@
     <title>QdisPlayer RTSP player example</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="js/player.js"></script>
-    <script src="js/parking-zone.js"></script>
+    <script src="js/parking-zone-common.js"></script>
+    <script src="js/parking-zone-editor-mode.js"></script>
+    <script src="js/parking-zone-monitor-mode.js"></script>
 </head>
 <body>
     <div style="position: relative; margin-left: 50px;">
-        <div id="parking-zone" class="zone" width="1000" height="750" style="overflow: scroll;">
-            <video is="qdis-player" class="absolute" id="qdis-player" width="1000" height="750" controls autoplay muted="muted">
-                해당 브라우저는 스트리밍을 지원하지 않습니다.
-            </video>
-
-            <img id="capture-img" class="absolute" width="1000" height="750">
-            <canvas id="canvas" class="absolute" width="4000" height="3000"></canvas>
-        </div>
+        <div style="width: 752px; border: 1px solid darkgray;">
+            <div id="parking-zone" class="zone" width="752" height="752" style="overflow: auto;">
+                <video is="qdis-player" class="absolute" id="qdis-player" width="752" height="752" controls autoplay muted="muted">
+                    해당 브라우저는 스트리밍을 지원하지 않습니다.
+                </video>
+    
+                <img id="capture-img" class="absolute" width="752" height="752">
+                <canvas id="canvas-editor" class="absolute" width="3008" height="3008"></canvas>
+                <canvas id="canvas-monitor" class="absolute" width="3008" height="3008"></canvas>
+            </div>
+        </div>        
 
         <div>
             <div id="control-pannel" class="control-pannel" style="float: left; width: 90px;">
@@ -39,11 +44,18 @@
     </div>
 </body>
 <script>
+    const MODE_EDITOR = 0;
+    const MODE_MONITOR = 1;
+
+    var currentMode = MODE_EDITOR;//현재 화면 모드
+
     var parkingZone;//영상 영역 <div>
     var qdisPlayer;//소켓 스트리밍 플레이어
     var captureImg;//캡쳐이미지 표시 <img>
-    var canvas;//영역 표시 <canvas>
-    var ctx;//canvas Context
+    var canvasEditor;//영역 표시 <canvas>
+    var canvasMonitor;//영역 표시 <canvas>
+    var ctxEditor;//canvas Context
+    var ctxMonitor;//canvas Context
 
     var ctrlPannel;//우상단 컨트롤 패널
     var areaSelect;//데이터 없는 영역 유동 버튼 배치 <div>
@@ -57,12 +69,13 @@
 
     var btnLoadImgFile;
     var btnLoadCaptureImg;
-    var btnModeToggle;
     var btnTest;
 
+    var btnModeToggle;
+
     window.addEventListener('DOMContentLoaded', () => {
-        init();
         processFn();
+        init();
     });
 
     /**
@@ -72,16 +85,19 @@
         parkingZone = document.getElementById('parking-zone');
         qdisPlayer = document.getElementById('qdis-player');
         captureImg = document.getElementById('capture-img');
-        canvas = document.getElementById('canvas');
-        ctx = canvas.getContext('2d');
+        canvasEditor = document.getElementById('canvas-editor');
+        canvasMonitor = document.getElementById('canvas-monitor');
+        ctxEditor = canvasEditor.getContext('2d');
+        ctxMonitor = canvasMonitor.getContext('2d');
         
-        pzCanvasSizeRatio = canvas.offsetWidth / parkingZone.offsetWidth;
-
-        console.log('pzCanvasSizeRatio =', pzCanvasSizeRatio, 'canvas.offsetWidth =', canvas.offsetWidth, 'parkingZone.offsetWidth =', parkingZone.offsetWidth);
+        pzCanvasSizeRatio = canvasEditor.offsetWidth / parkingZone.offsetWidth;
 
         // canvas 크기를 편집창 사이즈에 맞춰 조정
-        canvas.style.width = parkingZone.offsetWidth + 'px';
-        canvas.style.height = parkingZone.offsetHeight + 'px';
+        canvasEditor.style.width = parkingZone.offsetWidth + 'px';
+        canvasEditor.style.height = parkingZone.offsetHeight + 'px';
+
+        canvasMonitor.style.width = parkingZone.offsetWidth + 'px';
+        canvasMonitor.style.height = parkingZone.offsetHeight + 'px';
         
         ctrlPannel = document.getElementById('control-pannel');
         areaSelect = document.getElementById('area-select');
@@ -98,12 +114,11 @@
         btnModeToggle = document.getElementById('btn-mode-toggle');
         btnTest = document.getElementById('btn-test');
         
-        parkingZone.addEventListener('wheel', wheelScrollHandler, false);
         parkingZone.addEventListener('mousedown', mouseDownHandler, false);
         captureImg.addEventListener('load', () => {
             // 이미지 로드 완료 이벤트 리스너        
         }, false);
-        canvas.addEventListener('click', getClickPosition, false);
+        canvasEditor.addEventListener('click', getClickPosition, false);
         btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
         btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
         btnBack.addEventListener('click', btnBackOnClick, false);
@@ -112,16 +127,78 @@
         btnAllClear.addEventListener('click', btnAllClearOnClick, false);
         
         btnLoadImgFile.addEventListener('click', openImgFile, false);
-        btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
+        btnLoadCaptureImg.addEventListener('click', () => {
+            setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
         btnModeToggle.addEventListener('click', changeMode, false);
         btnTest.addEventListener('click', getAreas, false);
 
-        qdisPlayer.style.display = 'none';
-
         ctrlPannel.style.top = parkingZone.offsetTop + 'px';
-        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
-        
+        ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 105) + 'px';
+
         setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
+        setEditMode()
+
+        // setMonitorMode()
+    }
+
+    function changeMode(){
+        switch (currentMode) {
+            case MODE_EDITOR:
+                setMonitorMode()
+                break;
+            case MODE_MONITOR:
+                setEditMode()
+                break;
+        }
+
+        console.log('currentMode = ', currentMode);
+    }
+
+    function setEditMode(){
+        if (wsPlayer) {
+            wsPlayer.stop();
+        }
+
+        captureImg.style.display = 'block';
+        canvasEditor.style.display = 'block';
+        ctrlPannel.style.display = 'block';
+
+        qdisPlayer.style.display = 'none';
+        canvasMonitor.style.display = 'none';
+        
+        btnLoadImgFile.disabled = false;
+        btnLoadCaptureImg.disabled = false;
+        btnModeToggle.innerText = 'Monitor Mode';
+
+        parkingZone.addEventListener('wheel', editorModeWheelScrollHandler, false);
+        parkingZone.removeEventListener('wheel', monitorModeWheelScrollHandler, false);
+
+        currentMode = MODE_EDITOR;
+        setEditorModeDefaultScale()
+    }
+
+    function setMonitorMode(){
+        setPlayerSource('rtsp://' + hostName + '/' + channel);
+
+        captureImg.style.display = 'none';
+        canvasEditor.style.display = 'none';
+        ctrlPannel.style.display = 'none';
+
+        qdisPlayer.style.display = 'block';
+        canvasMonitor.style.display = 'block';
+
+        btnLoadImgFile.disabled = true;
+        btnLoadCaptureImg.disabled = true;
+        btnModeToggle.innerText = 'Editor Mode';
+
+        parkingZone.removeEventListener('wheel', editorModeWheelScrollHandler, false);
+        parkingZone.addEventListener('wheel', monitorModeWheelScrollHandler, false);
+
+        currentMode = MODE_MONITOR;
+        setMonitorModeDefaultScale()
+
+        // Monitor 데이터 수신부 적용 필요
+        sendTestData();
     }
 </script>
 </html>

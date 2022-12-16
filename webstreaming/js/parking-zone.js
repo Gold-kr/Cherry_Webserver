@@ -1,6 +1,6 @@
 const MODE_EDITOR = 0;
 const MODE_MONITOR = 1;
-const CAPTURE_IMG_URL = 'http://115.94.37.213:8080/video/capture?mode=0&rand=';
+const CAPTURE_IMG_URL = 'http://115.94.37.213:8085/video/capture?mode=0&rand=';
 // const CAPTURE_IMG_URL = 'images/test_img.jpg';
 const ZOOM_OUT_MIN = 1;
 const ZOOM_IN_MAX = 4;
@@ -17,90 +17,90 @@ var isMoved = false;//드래그 동작 체커
 
 let pos = { top: 0, left: 0, x: 0, y: 0 };
 
-var parkingZone;//영상 영역 <div>
-var qdisPlayer;//소켓 스트리밍 플레이어
-var captureImg;//캡쳐이미지 표시 <img>
-var canvas;//영역 표시 <canvas>
-var ctx;//canvas Context
+// var parkingZone;//영상 영역 <div>
+// var qdisPlayer;//소켓 스트리밍 플레이어
+// var captureImg;//캡쳐이미지 표시 <img>
+// var canvas;//영역 표시 <canvas>
+// var ctx;//canvas Context
 
-var ctrlPannel;//우상단 컨트롤 패널
-var areaSelect;//데이터 없는 영역 유동 버튼 배치 <div>
+// var ctrlPannel;//우상단 컨트롤 패널
+// var areaSelect;//데이터 없는 영역 유동 버튼 배치 <div>
 
-var btnZoomIn;
-var btnZoomOut;
-var btnBack;
-var btnEnter;
-var btnClear;
-var btnAllClear;
+// var btnZoomIn;
+// var btnZoomOut;
+// var btnBack;
+// var btnEnter;
+// var btnClear;
+// var btnAllClear;
 
-var btnLoadImgFile;
-var btnLoadCaptureImg;
-var btnModeToggle;
-var btnTest;
+// var btnLoadImgFile;
+// var btnLoadCaptureImg;
+// var btnModeToggle;
+// var btnTest;
 
-window.addEventListener('DOMContentLoaded', () => {
-    init();
-    processFn();
-});
+// window.addEventListener('DOMContentLoaded', () => {
+//     init();
+//     processFn();
+// });
 
 /**
  * 각종 html Element 초기화 및 바인딩
  */
-function init(){
-    parkingZone = document.getElementById('parking-zone');
-    qdisPlayer = document.getElementById('qdis-player');
-    captureImg = document.getElementById('capture-img');
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
+// function init(){
+//     parkingZone = document.getElementById('parking-zone');
+//     qdisPlayer = document.getElementById('qdis-player');
+//     captureImg = document.getElementById('capture-img');
+//     canvas = document.getElementById('canvas');
+//     ctx = canvas.getContext('2d');
     
-    pzCanvasSizeRatio = canvas.offsetWidth / parkingZone.offsetWidth;
+//     pzCanvasSizeRatio = canvas.offsetWidth / parkingZone.offsetWidth;
 
-    console.log('pzCanvasSizeRatio = ', pzCanvasSizeRatio);
+//     console.log('pzCanvasSizeRatio =', pzCanvasSizeRatio, 'canvas.offsetWidth =', canvas.offsetWidth, 'parkingZone.offsetWidth =', parkingZone.offsetWidth);
 
-    // canvas 크기를 편집창 사이즈에 맞춰 조정
-    canvas.style.width = parkingZone.offsetWidth + 'px';
-    canvas.style.height = parkingZone.offsetHeight + 'px';
+//     // canvas 크기를 편집창 사이즈에 맞춰 조정
+//     canvas.style.width = parkingZone.offsetWidth + 'px';
+//     canvas.style.height = parkingZone.offsetHeight + 'px';
     
-    ctrlPannel = document.getElementById('control-pannel');
-    areaSelect = document.getElementById('area-select');
+//     ctrlPannel = document.getElementById('control-pannel');
+//     areaSelect = document.getElementById('area-select');
     
-    btnZoomIn = document.getElementById('btn-zoom-in');
-    btnZoomOut = document.getElementById('btn-zoom-out');
-    btnBack = document.getElementById('btn-back');
-    btnEnter = document.getElementById('btn-close');
-    btnClear = document.getElementById('btn-clear');
-    btnAllClear = document.getElementById('btn-all-clear');
+//     btnZoomIn = document.getElementById('btn-zoom-in');
+//     btnZoomOut = document.getElementById('btn-zoom-out');
+//     btnBack = document.getElementById('btn-back');
+//     btnEnter = document.getElementById('btn-close');
+//     btnClear = document.getElementById('btn-clear');
+//     btnAllClear = document.getElementById('btn-all-clear');
     
-    btnLoadImgFile = document.getElementById('btn-load-img-file');
-    btnLoadCaptureImg = document.getElementById('btn-load-capture-img');
-    btnModeToggle = document.getElementById('btn-mode-toggle');
-    btnTest = document.getElementById('btn-test');
+//     btnLoadImgFile = document.getElementById('btn-load-img-file');
+//     btnLoadCaptureImg = document.getElementById('btn-load-capture-img');
+//     btnModeToggle = document.getElementById('btn-mode-toggle');
+//     btnTest = document.getElementById('btn-test');
     
-    parkingZone.addEventListener('wheel', wheelScrollHandler, false);
-    parkingZone.addEventListener('mousedown', mouseDownHandler, false);
-    captureImg.addEventListener('load', () => {
-        // 이미지 로드 완료 이벤트 리스너        
-    }, false);
-    canvas.addEventListener('click', getClickPosition, false);
-    btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
-    btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
-    btnBack.addEventListener('click', btnBackOnClick, false);
-    btnEnter.addEventListener('click', btnEnterOnClick, false);
-    btnClear.addEventListener('click', btnClearOnClick, false);
-    btnAllClear.addEventListener('click', btnAllClearOnClick, false);
+//     parkingZone.addEventListener('wheel', wheelScrollHandler, false);
+//     parkingZone.addEventListener('mousedown', mouseDownHandler, false);
+//     captureImg.addEventListener('load', () => {
+//         // 이미지 로드 완료 이벤트 리스너        
+//     }, false);
+//     canvas.addEventListener('click', getClickPosition, false);
+//     btnZoomIn.addEventListener('click', btnZoomInOnClick, false);
+//     btnZoomOut.addEventListener('click', btnZoomOutOnClick, false);
+//     btnBack.addEventListener('click', btnBackOnClick, false);
+//     btnEnter.addEventListener('click', btnEnterOnClick, false);
+//     btnClear.addEventListener('click', btnClearOnClick, false);
+//     btnAllClear.addEventListener('click', btnAllClearOnClick, false);
     
-    btnLoadImgFile.addEventListener('click', openImgFile, false);
-    btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
-    btnModeToggle.addEventListener('click', changeMode, false);
-    btnTest.addEventListener('click', getAreas, false);
+//     btnLoadImgFile.addEventListener('click', openImgFile, false);
+//     btnLoadCaptureImg.addEventListener('click', () => {setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999))}, false);
+//     btnModeToggle.addEventListener('click', changeMode, false);
+//     btnTest.addEventListener('click', getAreas, false);
 
-    qdisPlayer.style.display = 'none';
+//     qdisPlayer.style.display = 'none';
 
-    ctrlPannel.style.top = parkingZone.offsetTop + 'px';
-    ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
+//     ctrlPannel.style.top = parkingZone.offsetTop + 'px';
+//     ctrlPannel.style.left = (parkingZone.offsetLeft + parkingZone.clientWidth - 90) + 'px';
     
-    setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
-}
+//     setCapturedImage(CAPTURE_IMG_URL + parseInt(Math.random() * 999999999999999));
+// }
 
 /**
  * 모드 체인지시 동작 컨트롤
@@ -880,7 +880,7 @@ function setPlayerSource(newSource) {
     }
 
     var option = {
-        socket: 'ws://' + hostName + ':8088/',
+        socket: 'ws://' + hostName + ':8085/',
         // socket: 'ws://115.94.37.213:8088/',
         redirectNativeMediaErrors: true,
         bufferDuration: 120,
